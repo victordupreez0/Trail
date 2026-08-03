@@ -36,6 +36,14 @@ refactor: code change that's not a fix or a feature
 
 Examples: `feat: add trail search swipe cards`, `fix: stop background tracking on group leave`.
 
+## Tests
+
+Co-locate tests next to the code they cover — **except under `app/`**. Expo Router
+treats every file in `app/` as a route (its `require.context` only excludes `+api`,
+`+html`, `+middleware`), so a `.test.tsx` there gets bundled into the production build
+and pulls test-only packages along with it. Route component tests live in `__tests__/`
+at the repo root instead (see `__tests__/index.test.tsx`).
+
 ## Before committing
 
 A pre-commit hook runs ESLint + Prettier on staged files automatically. To run everything

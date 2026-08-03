@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isSelf(uid);
+
+      match /savedTrails/{trailId} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    match /trails/{trailId} {
+      allow read: if isSignedIn();
+      allow write: if false; // seeded by the Admin SDK only
+    }
+
+    match /groups/{groupId} {
+      function isMember() {
+        return isSignedIn() && request.auth.uid in resource.data.memberIds;
+      }
+
+      function joiningSelf() {
+        // Only the caller's own uid may be appended to memberIds; every other
+        // field must stay exactly as it was.
+        let before = resource.data;
+        let after = request.resource.data;
+        return isSignedIn()
+          && after.diff(before).affectedKeys().hasOnly(['memberIds'])
+          && after.memberIds.toSet().difference(before.memberIds.toSet()).hasOnly([request.auth.uid]);
+      }
+
+      allow read: if isMember();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if (isSignedIn() && resource.data.ownerId == request.auth.uid) || joiningSelf();
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /positions/{uid} {
+        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+        allow write: if isSelf(uid) && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+      }
+    }
+  }
+}

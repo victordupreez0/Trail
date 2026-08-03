@@ -1,5 +1,14 @@
 # Contributing
 
+## One-time repo setup (admin)
+
+These are GitHub repo-settings changes, not something a CI file can do — do them once,
+in the GitHub UI, under Settings:
+
+1. **Branch protection** on `main`: Settings → Branches → require a pull request before
+   merging, require the CI status check to pass, no direct pushes.
+2. **Add the lecturer as a collaborator** (per the assessment brief).
+
 ## Branching
 
 Trunk-based. `main` is always deployable and is protected — no direct pushes.

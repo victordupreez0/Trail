@@ -32,19 +32,19 @@ conventions, CI, testing, and the architecture the five feature slices build on.
 
 ### Stack
 
-| Concern         | Choice                                                     | Why                                                                                                     |
-| --------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Framework       | Expo SDK 57 + React Native + **TypeScript strict**         | Mandated by brief; Expo gives EAS builds for iOS from Windows                                           |
-| Build           | **EAS dev build** (`expo-dev-client`)                      | Background location + `react-native-maps` don't work in Expo Go                                         |
-| Navigation      | Expo Router (file-based)                                   | Expo default; auth stack + modals for free                                                              |
-| Main shell      | `react-native-pager-view`                                  | Pitch: "pager, not a tab bar"                                                                           |
-| Maps            | `react-native-maps`                                        | Trail + live party views                                                                                |
-| Gestures/motion | `react-native-gesture-handler` + `react-native-reanimated` | Earns two rubric items: the gesture-first constraint **and** the required tweening / micro-interactions |
-| Backend         | Firebase JS SDK — Auth + Firestore                         | Mandated. JS SDK avoids native config files                                                             |
-| Live positions  | **Firestore only**, throttled writes                       | KPI is 10s; Firestore snapshot listeners hit that easily and it's one less service                      |
-| Reminders       | `expo-notifications` (local only)                          | No push server needed for hydration/rest nudges                                                         |
-| State           | Firestore listeners + React Context                        | No Redux/Zustand                                                                                        |
-| Package manager | npm (`legacy-peer-deps=true` — see `.npmrc`)               | Already present                                                                                         |
+| Concern         | Choice                                                     | Why                                                                                                                                                                                                                           |
+| --------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | Expo SDK 54 + React Native + **TypeScript strict**         | Mandated by brief; Expo gives EAS builds for iOS from Windows. Pinned to 54, not the newest SDK — Apple's App Store review of Expo Go lags new SDK releases by months, and 54 is what the published Expo Go app actually runs |
+| Build           | **EAS dev build** (`expo-dev-client`)                      | Background location + `react-native-maps` don't work in Expo Go                                                                                                                                                               |
+| Navigation      | Expo Router (file-based)                                   | Expo default; auth stack + modals for free                                                                                                                                                                                    |
+| Main shell      | `react-native-pager-view`                                  | Pitch: "pager, not a tab bar"                                                                                                                                                                                                 |
+| Maps            | `react-native-maps`                                        | Trail + live party views                                                                                                                                                                                                      |
+| Gestures/motion | `react-native-gesture-handler` + `react-native-reanimated` | Earns two rubric items: the gesture-first constraint **and** the required tweening / micro-interactions                                                                                                                       |
+| Backend         | Firebase JS SDK — Auth + Firestore                         | Mandated. JS SDK avoids native config files                                                                                                                                                                                   |
+| Live positions  | **Firestore only**, throttled writes                       | KPI is 10s; Firestore snapshot listeners hit that easily and it's one less service                                                                                                                                            |
+| Reminders       | `expo-notifications` (local only)                          | No push server needed for hydration/rest nudges                                                                                                                                                                               |
+| State           | Firestore listeners + React Context                        | No Redux/Zustand                                                                                                                                                                                                              |
+| Package manager | npm (`legacy-peer-deps=true` — see `.npmrc`)               | Already present                                                                                                                                                                                                               |
 
 ### Data model (Firestore)
 

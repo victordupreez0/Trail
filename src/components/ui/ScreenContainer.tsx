@@ -6,7 +6,7 @@ import { spacing } from '../../theme/spacing';
 
 export function ScreenContainer({ style, ...props }: ViewProps) {
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={[styles.container, style]} {...props} />
     </SafeAreaView>
   );

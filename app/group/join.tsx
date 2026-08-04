@@ -1,12 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../src/components/ui/Button';
+import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
-import { spacing } from '../../src/theme/spacing';
+import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function JoinGroup() {
@@ -14,7 +16,7 @@ export default function JoinGroup() {
   const [code, setCode] = useState('');
 
   const join = () => {
-    // Mock: any code joins the one seeded demo group — real invite-code lookup
+    // Mock: any code joins the seeded demo group — real invite-code lookup
     // arrives with Firestore groups.
     setActiveGroupId('group-1');
     router.back();
@@ -22,34 +24,56 @@ export default function JoinGroup() {
 
   return (
     <ScreenContainer style={styles.container}>
-      <Text style={typography.title}>Join a group</Text>
-      <Text style={styles.subtitle}>Enter the invite code your hiking party shared with you.</Text>
+      <View style={styles.header}>
+        <Text style={typography.title}>Join a group</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={() => router.back()}
+          hitSlop={10}
+        >
+          <Ionicons name="close" size={24} color={colors.muted} />
+        </Pressable>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. TRAIL-42"
-        placeholderTextColor={colors.muted}
+      <View style={styles.iconCircle}>
+        <Ionicons name="enter-outline" size={30} color={colors.primary} />
+      </View>
+
+      <Text style={styles.sub}>
+        Enter the invite code your hiking party shared with you, and you&apos;ll appear on their
+        map.
+      </Text>
+
+      <Field
+        label="Invite code"
+        icon="key-outline"
+        placeholder="TRAIL-42"
         autoCapitalize="characters"
+        autoCorrect={false}
         value={code}
         onChangeText={setCode}
       />
 
-      <Button label="Join group" onPress={join} />
+      <View style={styles.spacer} />
+      <Button label="Join group" icon="enter-outline" onPress={join} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: spacing.xl, gap: spacing.sm },
-  subtitle: { ...typography.body, color: colors.muted, marginBottom: spacing.md },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    color: colors.text,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.lg,
+  container: { paddingTop: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginTop: spacing.md,
   },
+  sub: { ...typography.body, color: colors.muted, textAlign: 'center' },
+  spacer: { flex: 1 },
 });

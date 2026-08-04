@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DashboardScreen } from '../../src/screens/DashboardScreen';
 import { DiscoverScreen } from '../../src/screens/DiscoverScreen';
@@ -9,40 +11,32 @@ import { GroupsScreen } from '../../src/screens/GroupsScreen';
 import { ProfileScreen } from '../../src/screens/ProfileScreen';
 import { SavedScreen } from '../../src/screens/SavedScreen';
 import { colors } from '../../src/theme/colors';
-import { spacing } from '../../src/theme/spacing';
+import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
-// The pitch's constraint: a pager, not a tab bar. One route hosts all five pages so
-// PagerView owns the horizontal swipe directly, instead of fighting Expo Router's
-// file-based nesting to get the same gesture.
+// Swiping between pages keeps the gesture-first constraint; the tab bar gives the
+// same destinations a visible, tappable affordance. Gestures are the shortcut,
+// buttons are the map.
 const pages = [
-  { key: 'dashboard', label: 'Home', render: () => <DashboardScreen /> },
-  { key: 'discover', label: 'Discover', render: () => <DiscoverScreen /> },
-  { key: 'saved', label: 'Saved', render: () => <SavedScreen /> },
-  { key: 'groups', label: 'Groups', render: () => <GroupsScreen /> },
-  { key: 'profile', label: 'Profile', render: () => <ProfileScreen /> },
-];
+  { key: 'dashboard', label: 'Today', icon: 'home', render: () => <DashboardScreen /> },
+  { key: 'discover', label: 'Discover', icon: 'compass', render: () => <DiscoverScreen /> },
+  { key: 'saved', label: 'Saved', icon: 'bookmark', render: () => <SavedScreen /> },
+  { key: 'groups', label: 'Party', icon: 'people', render: () => <GroupsScreen /> },
+  { key: 'profile', label: 'You', icon: 'person', render: () => <ProfileScreen /> },
+] as const;
 
 export default function AppPager() {
   const pagerRef = useRef<PagerView>(null);
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
+
+  const goTo = (i: number) => {
+    if (i !== page) Haptics.selectionAsync().catch(() => {});
+    pagerRef.current?.setPage(i);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <Text style={styles.pageLabel}>{pages[page].label}</Text>
-      <View style={styles.tabs}>
-        {pages.map((p, i) => (
-          <Pressable
-            key={p.key}
-            style={styles.tab}
-            onPress={() => pagerRef.current?.setPage(i)}
-            hitSlop={8}
-          >
-            <View style={[styles.dot, i === page && styles.dotActive]} />
-          </Pressable>
-        ))}
-      </View>
-
       <PagerView
         ref={pagerRef}
         style={styles.pager}
@@ -55,6 +49,31 @@ export default function AppPager() {
           </View>
         ))}
       </PagerView>
+
+      <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+        {pages.map((p, i) => {
+          const active = i === page;
+          return (
+            <Pressable
+              key={p.key}
+              accessibilityRole="tab"
+              accessibilityLabel={p.label}
+              accessibilityState={{ selected: active }}
+              style={styles.tab}
+              onPress={() => goTo(i)}
+            >
+              <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+                <Ionicons
+                  name={(active ? p.icon : `${p.icon}-outline`) as keyof typeof Ionicons.glyphMap}
+                  size={21}
+                  color={active ? colors.primaryDark : colors.muted}
+                />
+              </View>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{p.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </SafeAreaView>
   );
 }
@@ -63,14 +82,21 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   pager: { flex: 1 },
   page: { flex: 1, paddingHorizontal: spacing.lg },
-  pageLabel: { ...typography.heading, textAlign: 'center', paddingTop: spacing.xs },
-  tabs: {
+  tabBar: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
-  tab: { padding: spacing.xs },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  dotActive: { backgroundColor: colors.primary, width: 20 },
+  tab: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 2 },
+  iconWrap: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  iconWrapActive: { backgroundColor: colors.primarySoft },
+  tabLabel: { ...typography.caption, fontSize: 11, color: colors.muted },
+  tabLabelActive: { color: colors.primaryDark, fontWeight: '700' },
 });

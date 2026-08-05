@@ -37,7 +37,7 @@ export function DashboardScreen() {
       {activeTrail && group ? (
         <Pressable onPress={() => router.push(`/trail/${activeTrail.id}`)}>
           <View style={styles.hero}>
-            <Image source={{ uri: activeTrail.photoUrl }} style={StyleSheet.absoluteFill} />
+            <Image source={activeTrail.photo} style={StyleSheet.absoluteFill} resizeMode="cover" />
             <LinearGradient
               colors={['rgba(15,26,21,0.15)', 'rgba(15,26,21,0.85)']}
               style={StyleSheet.absoluteFill}

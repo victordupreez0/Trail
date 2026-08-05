@@ -43,7 +43,7 @@ export default function TrailDetail() {
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.heroWrap}>
-          <Image source={{ uri: trail.photoUrl }} style={styles.hero} resizeMode="cover" />
+          <Image source={trail.photo} style={styles.hero} resizeMode="cover" />
           <LinearGradient
             colors={['rgba(15,26,21,0.45)', 'transparent', 'rgba(245,243,237,1)']}
             locations={[0, 0.4, 1]}

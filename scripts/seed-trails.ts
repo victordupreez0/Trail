@@ -22,7 +22,10 @@ async function main() {
   const db = getFirestore(app);
 
   const batch = db.batch();
-  for (const { id, ...trail } of trails) {
+  for (const { id, photo, ...trail } of trails) {
+    // `photo` is a bundled asset handle that only means anything inside the app
+    // bundle, so Firestore stores photoUrl instead.
+    void photo;
     batch.set(db.collection('trails').doc(id), trail);
   }
   await batch.commit();

@@ -1,5 +1,7 @@
 // The curated trail catalog. Shared by the UI (static/mock data for now) and
 // scripts/seed-trails.ts (writes the same data into Firestore). One dataset, two uses.
+import type { ImageSourcePropType } from 'react-native';
+
 export type Trail = {
   id: string;
   name: string;
@@ -8,6 +10,11 @@ export type Trail = {
   elevationGainM: number;
   region: string;
   description: string;
+  // Bundled with the app, so photos render instantly and work with no network.
+  // Remote URLs proved unreliable on venue wifi and are a poor demo dependency.
+  photo: ImageSourcePropType;
+  // The same image hosted remotely, written to Firestore by scripts/seed-trails.ts
+  // for when trail data is served from the backend.
   photoUrl: string;
   location: { latitude: number; longitude: number };
   // A simplified 3-4 point polyline, not a real GPX track. Swap for
@@ -25,7 +32,9 @@ export const trails: Trail[] = [
     region: 'Cape Town, South Africa',
     description:
       'Spiral summit trail with chain-and-ladder sections and 360° views over Cape Town.',
-    photoUrl: 'https://images.unsplash.com/photo-1591117747293-0c48b3184e08',
+    photoUrl:
+      'https://images.unsplash.com/photo-1444351274028-b348e6da5f67?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-01.jpg'),
     location: { latitude: -33.9359, longitude: 18.3875 },
     path: [
       { latitude: -33.9395, longitude: 18.3838 },
@@ -42,7 +51,9 @@ export const trails: Trail[] = [
     region: 'Cape Town, South Africa',
     description:
       'The most direct route up Table Mountain. Steep, exposed, and unforgiving on the knees.',
-    photoUrl: 'https://images.unsplash.com/photo-1580060839484-45551a76ba13',
+    photoUrl:
+      'https://images.unsplash.com/photo-1459231978203-b7d0c47a2cb7?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-02.jpg'),
     location: { latitude: -33.9628, longitude: 18.4055 },
     path: [
       { latitude: -33.9584, longitude: 18.4048 },
@@ -59,7 +70,9 @@ export const trails: Trail[] = [
     region: 'Cape Town, South Africa',
     description:
       'Long climb from Tafelberg Road with sweeping views of the City Bowl and False Bay.',
-    photoUrl: 'https://images.unsplash.com/photo-1620121692029-d088224ddc74',
+    photoUrl:
+      'https://images.unsplash.com/photo-1465513670158-c3ac6c8d1a87?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-03.jpg'),
     location: { latitude: -33.9553, longitude: 18.4192 },
     path: [
       { latitude: -33.9498, longitude: 18.4241 },
@@ -75,7 +88,9 @@ export const trails: Trail[] = [
     elevationGainM: 600,
     region: 'Cape Town, South Africa',
     description: 'Shaded ravine climb through Kirstenbosch forest onto the Table Mountain plateau.',
-    photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
+    photoUrl:
+      'https://images.unsplash.com/photo-1501554728187-ce583db33af7?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-04.jpg'),
     location: { latitude: -33.9881, longitude: 18.4322 },
     path: [
       { latitude: -33.9881, longitude: 18.4322 },
@@ -92,7 +107,9 @@ export const trails: Trail[] = [
     region: 'Cape Town, South Africa',
     description:
       'Gentle contour path along the Twelve Apostles with steady Atlantic seaboard views.',
-    photoUrl: 'https://images.unsplash.com/photo-1508093926816-c9c65e13a3f3',
+    photoUrl:
+      'https://images.unsplash.com/photo-1504280317859-9c6cce36bca8?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-05.jpg'),
     location: { latitude: -33.9702, longitude: 18.3778 },
     path: [
       { latitude: -33.956, longitude: 18.382 },
@@ -108,7 +125,9 @@ export const trails: Trail[] = [
     elevationGainM: 500,
     region: 'Cape Town, South Africa',
     description: "Coastal traverse above one of the world's most scenic drives.",
-    photoUrl: 'https://images.unsplash.com/photo-1580237072353-751a8a5b66e4',
+    photoUrl:
+      'https://images.unsplash.com/photo-1505140402502-734369f05760?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-06.jpg'),
     location: { latitude: -34.087, longitude: 18.3567 },
     path: [
       { latitude: -34.079, longitude: 18.361 },
@@ -124,7 +143,9 @@ export const trails: Trail[] = [
     elevationGainM: 350,
     region: 'Cape Point, South Africa',
     description: "Fynbos and cliffside path to South Africa's dramatic southernmost tip.",
-    photoUrl: 'https://images.unsplash.com/photo-1580060839484-45551a76ba13',
+    photoUrl:
+      'https://images.unsplash.com/photo-1527421214132-5f2469ca182d?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-07.jpg'),
     location: { latitude: -34.3568, longitude: 18.4881 },
     path: [
       { latitude: -34.341, longitude: 18.479 },
@@ -140,7 +161,9 @@ export const trails: Trail[] = [
     elevationGainM: 220,
     region: 'Cape Town, South Africa',
     description: 'Reservoir loop through fynbos with panoramic views to both oceans.',
-    photoUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
+    photoUrl:
+      'https://images.unsplash.com/photo-1558734918-dfc4fe470147?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-08.jpg'),
     location: { latitude: -34.0958, longitude: 18.4114 },
     path: [
       { latitude: -34.093, longitude: 18.408 },
@@ -156,7 +179,9 @@ export const trails: Trail[] = [
     elevationGainM: 550,
     region: 'Cape Town, South Africa',
     description: 'Steep ravine ascent to the Table Mountain plateau above Camps Bay.',
-    photoUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
+    photoUrl:
+      'https://images.unsplash.com/photo-1560199738-3d933bc1e714?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-09.jpg'),
     location: { latitude: -33.966, longitude: 18.3865 },
     path: [
       { latitude: -33.961, longitude: 18.383 },
@@ -172,7 +197,9 @@ export const trails: Trail[] = [
     elevationGainM: 380,
     region: 'Tokai, South Africa',
     description: 'Forest and fynbos climb to a cave overlooking the Cape Flats.',
-    photoUrl: 'https://images.unsplash.com/photo-1502786129293-79981df4e689',
+    photoUrl:
+      'https://images.unsplash.com/photo-1562593028-1fe2d15bde36?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-10.jpg'),
     location: { latitude: -34.0651, longitude: 18.4212 },
     path: [
       { latitude: -34.06, longitude: 18.418 },
@@ -189,7 +216,9 @@ export const trails: Trail[] = [
     region: 'Cape Town, South Africa',
     description:
       "Scrambly, exposed route up Table Mountain's front face. Chains and ladders required.",
-    photoUrl: 'https://images.unsplash.com/photo-1591117747293-0c48b3184e08',
+    photoUrl:
+      'https://images.unsplash.com/photo-1568226292321-dd67ff8b3b2b?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-11.jpg'),
     location: { latitude: -33.96, longitude: 18.402 },
     path: [
       { latitude: -33.956, longitude: 18.399 },
@@ -205,7 +234,9 @@ export const trails: Trail[] = [
     elevationGainM: 180,
     region: 'Cape Town, South Africa',
     description: 'Shaded forest path popular with trail runners and families.',
-    photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
+    photoUrl:
+      'https://images.unsplash.com/photo-1584907600887-9732fa3647ac?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-12.jpg'),
     location: { latitude: -33.976, longitude: 18.447 },
     path: [
       { latitude: -33.973, longitude: 18.444 },
@@ -221,7 +252,9 @@ export const trails: Trail[] = [
     elevationGainM: 900,
     region: 'Drakensberg, South Africa',
     description: "Chain ladder ascent to the top of the world's second-highest waterfall.",
-    photoUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
+    photoUrl:
+      'https://images.unsplash.com/photo-1587951326187-c9baa4606bff?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-13.jpg'),
     location: { latitude: -28.75, longitude: 28.9167 },
     path: [
       { latitude: -28.762, longitude: 28.905 },
@@ -237,7 +270,9 @@ export const trails: Trail[] = [
     elevationGainM: 550,
     region: 'Drakensberg, South Africa',
     description: 'Grassland approach into the Royal Natal amphitheatre.',
-    photoUrl: 'https://images.unsplash.com/photo-1508093926816-c9c65e13a3f3',
+    photoUrl:
+      'https://images.unsplash.com/photo-1592859600972-1b0834d83747?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-14.jpg'),
     location: { latitude: -28.735, longitude: 28.935 },
     path: [
       { latitude: -28.745, longitude: 28.925 },
@@ -253,7 +288,9 @@ export const trails: Trail[] = [
     elevationGainM: 400,
     region: 'Drakensberg, South Africa',
     description: 'River valley walk to San rock art in the Drakensberg foothills.',
-    photoUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
+    photoUrl:
+      'https://images.unsplash.com/photo-1595202761821-57d3a4e5dc9f?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-15.jpg'),
     location: { latitude: -29.2667, longitude: 29.5 },
     path: [
       { latitude: -29.272, longitude: 29.495 },
@@ -270,7 +307,9 @@ export const trails: Trail[] = [
     region: 'Garden Route, South Africa',
     description:
       "Storms River Mouth to Ngubu huts along one of Africa's most famous coastal trails.",
-    photoUrl: 'https://images.unsplash.com/photo-1502786129293-79981df4e689',
+    photoUrl:
+      'https://images.unsplash.com/photo-1597120590849-a1d5a743d155?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-16.jpg'),
     location: { latitude: -34.0333, longitude: 23.8833 },
     path: [
       { latitude: -34.028, longitude: 23.89 },
@@ -286,7 +325,9 @@ export const trails: Trail[] = [
     elevationGainM: 400,
     region: 'Cederberg, South Africa',
     description: 'Squeeze through sandstone cracks to a natural rock arch with valley views.',
-    photoUrl: 'https://images.unsplash.com/photo-1580237072353-751a8a5b66e4',
+    photoUrl:
+      'https://images.unsplash.com/photo-1600006293309-fe0a623de0a3?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-17.jpg'),
     location: { latitude: -32.4167, longitude: 19.25 },
     path: [
       { latitude: -32.41, longitude: 19.245 },
@@ -302,7 +343,9 @@ export const trails: Trail[] = [
     elevationGainM: 250,
     region: 'Cederberg, South Africa',
     description: 'Flat valley walk to a 20-metre freestanding rock pillar.',
-    photoUrl: 'https://images.unsplash.com/photo-1580060839484-45551a76ba13',
+    photoUrl:
+      'https://images.unsplash.com/photo-1616494268339-f49a1c4ac8f8?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-18.jpg'),
     location: { latitude: -32.45, longitude: 19.2333 },
     path: [
       { latitude: -32.445, longitude: 19.228 },
@@ -318,7 +361,9 @@ export const trails: Trail[] = [
     elevationGainM: 500,
     region: 'Drakensberg, South Africa/Lesotho',
     description: 'High-altitude walk near the Lesotho border, starting above 2,800m.',
-    photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
+    photoUrl:
+      'https://images.unsplash.com/photo-1616878443605-aca041c01763?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-19.jpg'),
     location: { latitude: -29.5833, longitude: 29.2833 },
     path: [
       { latitude: -29.59, longitude: 29.278 },
@@ -334,7 +379,9 @@ export const trails: Trail[] = [
     elevationGainM: 480,
     region: 'Cape Town, South Africa',
     description: 'Pristine indigenous forest section of the Hoerikwaggo Trail. Permit required.',
-    photoUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
+    photoUrl:
+      'https://images.unsplash.com/photo-1621960531176-9e4894d9adf8?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-20.jpg'),
     location: { latitude: -34.0, longitude: 18.3833 },
     path: [
       { latitude: -33.995, longitude: 18.379 },
@@ -350,7 +397,9 @@ export const trails: Trail[] = [
     elevationGainM: 120,
     region: "Betty's Bay, South Africa",
     description: 'Short, family-friendly walk to a fynbos waterfall in a botanical garden.',
-    photoUrl: 'https://images.unsplash.com/photo-1508093926816-c9c65e13a3f3',
+    photoUrl:
+      'https://images.unsplash.com/photo-1626436808209-c5093d1a0f75?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-21.jpg'),
     location: { latitude: -34.355, longitude: 18.9167 },
     path: [
       { latitude: -34.353, longitude: 18.914 },
@@ -366,7 +415,9 @@ export const trails: Trail[] = [
     elevationGainM: 850,
     region: 'Langeberg, South Africa',
     description: 'Remote two-day wilderness route through ancient afromontane forest.',
-    photoUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
+    photoUrl:
+      'https://images.unsplash.com/photo-1631635490744-229e551afade?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-22.jpg'),
     location: { latitude: -33.9667, longitude: 20.6667 },
     path: [
       { latitude: -33.96, longitude: 20.66 },
@@ -382,7 +433,9 @@ export const trails: Trail[] = [
     elevationGainM: 400,
     region: 'Mpumalanga, South Africa',
     description: 'Rim-side path above one of the largest green canyons on Earth.',
-    photoUrl: 'https://images.unsplash.com/photo-1502786129293-79981df4e689',
+    photoUrl:
+      'https://images.unsplash.com/photo-1663524962870-68df7698b909?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-23.jpg'),
     location: { latitude: -24.5833, longitude: 30.8 },
     path: [
       { latitude: -24.59, longitude: 30.795 },
@@ -398,7 +451,9 @@ export const trails: Trail[] = [
     elevationGainM: 950,
     region: 'Drakensberg, South Africa',
     description: 'Iconic chain-ladder route to the source of five major rivers.',
-    photoUrl: 'https://images.unsplash.com/photo-1580237072353-751a8a5b66e4',
+    photoUrl:
+      'https://images.unsplash.com/photo-1663524963924-4d84fd7204b5?w=900&q=68&auto=format&fit=crop',
+    photo: require('../../assets/trails/trail-24.jpg'),
     location: { latitude: -28.6833, longitude: 28.9 },
     path: [
       { latitude: -28.692, longitude: 28.892 },

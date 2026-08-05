@@ -11,7 +11,7 @@ import { Chip } from './ui/Chip';
 export function TrailCard({ trail, height = 200 }: { trail: Trail; height?: number }) {
   return (
     <View style={[styles.card, { height }]}>
-      <Image source={{ uri: trail.photoUrl }} style={styles.photo} resizeMode="cover" />
+      <Image source={trail.photo} style={styles.photo} resizeMode="cover" />
       {/* Photos vary wildly in brightness, so the scrim guarantees the title stays readable. */}
       <LinearGradient
         colors={['transparent', 'rgba(15,26,21,0.25)', 'rgba(15,26,21,0.88)']}

@@ -14,7 +14,7 @@ const sections = [
     title: 'Before you go',
     tips: [
       'Tell someone your route and when you expect to be back.',
-      'Check the forecast — mountain weather turns fast.',
+      'Check the forecast. Mountain weather turns fast.',
       'Carry more water than you think you need.',
     ],
   },

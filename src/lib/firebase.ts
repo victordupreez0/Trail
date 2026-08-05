@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Values come from EXPO_PUBLIC_* env vars (see .env.example) so they land in the
-// bundle at build time — no expo-constants plumbing needed.
+// bundle at build time, so no expo-constants plumbing is needed.
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,7 +16,7 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Metro resolves firebase/auth's "react-native" export condition, which persists
-// sessions to AsyncStorage automatically — no getReactNativePersistence call needed
+// sessions to AsyncStorage automatically, so no getReactNativePersistence call is needed
 // (that pattern is obsolete as of Firebase JS SDK v11+).
 export const auth = getAuth(app);
 export const db = getFirestore(app);

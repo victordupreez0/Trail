@@ -16,7 +16,7 @@ export default function JoinGroup() {
   const [code, setCode] = useState('');
 
   const join = () => {
-    // Mock: any code joins the seeded demo group — real invite-code lookup
+    // Mock: any code joins the seeded demo group. Real invite-code lookup
     // arrives with Firestore groups.
     setActiveGroupId('group-1');
     router.back();

@@ -39,7 +39,7 @@ if (!tunnel) {
     console.log('Your phone must be on the same WiFi.');
     console.log('If it still will not connect, run: npm run start:tunnel\n');
   } else {
-    console.log('\nNo LAN address found — falling back to Expo defaults.\n');
+    console.log('\nNo LAN address found, falling back to Expo defaults.\n');
   }
 }
 

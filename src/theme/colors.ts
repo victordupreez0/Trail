@@ -1,5 +1,5 @@
 // Calm-first palette (inspiration card: reduce stress). Warm paper rather than
-// stark white, forest greens, muted earth accents — nothing shouts except danger.
+// stark white, forest greens, muted earth accents. Nothing shouts except danger.
 export const colors = {
   background: '#F5F3ED',
   surface: '#FFFFFF',
@@ -16,7 +16,7 @@ export const colors = {
   shadow: '#1A231E',
 };
 
-// Consistent soft elevation — iOS shadow props + Android elevation together.
+// Consistent soft elevation, pairing iOS shadow props with Android elevation.
 export const shadow = {
   card: {
     shadowColor: colors.shadow,

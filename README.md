@@ -1,7 +1,7 @@
 # Trail
 
 A cross-platform mobile app for hikers: discover trails, share live location with your
-party, and stay looked-after on the mountain — through a calm, gesture-first interface.
+party, and stay looked-after on the mountain, through a calm, gesture-first interface.
 
 > Work in progress. Feature docs, screenshots, and the demo video land here in the final
 > submission slice; see `docs/specs/` for the design in the meantime.
@@ -10,12 +10,12 @@ party, and stay looked-after on the mountain — through a calm, gesture-first i
 
 - [Expo](https://expo.dev) (React Native + TypeScript, strict mode)
 - [Expo Router](https://docs.expo.dev/router/introduction/) for navigation
-- [Firebase](https://firebase.google.com) — Auth + Firestore
+- [Firebase](https://firebase.google.com) for Auth and Firestore
 - [react-native-maps](https://github.com/react-native-maps/react-native-maps),
   [react-native-reanimated](https://docs.swmansion.com/react-native-reanimated/) +
   [react-native-gesture-handler](https://docs.swmansion.com/react-native-gesture-handler/)
 
-Background location tracking requires a custom **Expo dev client** — this app does not
+Background location tracking requires a custom **Expo dev client**. This app does not
 run in Expo Go.
 
 ## Setup

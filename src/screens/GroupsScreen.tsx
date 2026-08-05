@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useRef } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 
 import { Avatar } from '../components/Avatar';
@@ -17,8 +17,10 @@ import { typography } from '../theme/typography';
 export function GroupsScreen() {
   const { activeGroupId, setActiveGroupId } = useAppState();
   // react-native-maps renders blank when its parent sizes it via flex inside a
-  // pager — it needs concrete pixel dimensions at mount.
-  const { width, height } = useWindowDimensions();
+  // pager, so it needs concrete pixel dimensions. Those come from measuring this
+  // screen rather than the window: the window includes the status bar and the
+  // tab bar, so sizing off it overflows and pushes the button out of view.
+  const [box, setBox] = useState({ width: 0, height: 0 });
   const mapRef = useRef<MapView>(null);
 
   const group = groups.find((g) => g.id === activeGroupId);
@@ -52,49 +54,60 @@ export function GroupsScreen() {
     longitudeDelta: 0.015,
   };
 
-  const mapHeight = height * 0.62;
+  // Half the measured space keeps the sheet below it fully on screen, button included.
+  const mapHeight = Math.round(box.height * 0.5);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.mapWrap, { width, height: mapHeight }]}>
-        <MapView
-          ref={mapRef}
-          style={{ width, height: mapHeight }}
-          initialRegion={region}
-          showsPointsOfInterest={false}
-          showsCompass={false}
-          toolbarEnabled={false}
-        >
-          <Polyline
-            coordinates={trail.path}
-            strokeColor={colors.primary}
-            strokeWidth={5}
-            lineCap="round"
-          />
-          {group.members.map((m) => (
-            <Marker
-              key={m.uid}
-              coordinate={m.position}
-              title={m.displayName}
-              description={`Battery ${Math.round(m.batteryLevel * 100)}%`}
-              tracksViewChanges={false}
-            >
-              <View style={styles.pin}>
-                <Avatar initials={m.initials} color={m.color} size={34} />
-              </View>
-            </Marker>
-          ))}
-        </MapView>
+    <View
+      style={styles.container}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        setBox((prev) =>
+          prev.width === width && prev.height === height ? prev : { width, height },
+        );
+      }}
+    >
+      {box.height > 0 ? (
+        <View style={[styles.mapWrap, { width: box.width, height: mapHeight }]}>
+          <MapView
+            ref={mapRef}
+            style={{ width: box.width, height: mapHeight }}
+            initialRegion={region}
+            showsPointsOfInterest={false}
+            showsCompass={false}
+            toolbarEnabled={false}
+          >
+            <Polyline
+              coordinates={trail.path}
+              strokeColor={colors.primary}
+              strokeWidth={5}
+              lineCap="round"
+            />
+            {group.members.map((m) => (
+              <Marker
+                key={m.uid}
+                coordinate={m.position}
+                title={m.displayName}
+                description={`Battery ${Math.round(m.batteryLevel * 100)}%`}
+                tracksViewChanges={false}
+              >
+                <View style={styles.pin}>
+                  <Avatar initials={m.initials} color={m.color} size={34} />
+                </View>
+              </Marker>
+            ))}
+          </MapView>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Recentre map on the trail"
-          style={styles.recentre}
-          onPress={() => mapRef.current?.animateToRegion(region, 500)}
-        >
-          <Ionicons name="locate" size={20} color={colors.text} />
-        </Pressable>
-      </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Recentre map on the trail"
+            style={styles.recentre}
+            onPress={() => mapRef.current?.animateToRegion(region, 500)}
+          >
+            <Ionicons name="locate" size={20} color={colors.text} />
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.sheet}>
         <View style={styles.grabber} />
@@ -160,7 +173,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
     gap: spacing.md,
+    // Pushes the button to the bottom of whatever space is left, so it can
+    // never be clipped by the tab bar.
+    justifyContent: 'space-between',
   },
   grabber: {
     alignSelf: 'center',

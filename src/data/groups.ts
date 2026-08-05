@@ -21,12 +21,12 @@ export type Group = {
 
 const lionsHead = trails.find((t) => t.id === 'lions-head')!;
 
-// Static stand-ins for what will be live positions once Firestore lands — placed
+// Static stand-ins for what will be live positions once Firestore lands. Placed
 // along the trail's own path so the map looks plausible.
 export const groups: Group[] = [
   {
     id: 'group-1',
-    name: "Sunrise crew — Lion's Head",
+    name: "Sunrise crew at Lion's Head",
     trailId: lionsHead.id,
     ownerId: 'me',
     inviteCode: 'TRAIL-42',

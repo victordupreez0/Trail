@@ -2,7 +2,7 @@
 
 ## One-time repo setup (admin)
 
-These are GitHub repo-settings changes, not something a CI file can do — do them once,
+These are GitHub repo-settings changes, not something a CI file can do. Do them once,
 in the GitHub UI, under Settings:
 
 1. **Branch protection** on `main`: Settings → Branches → require a pull request before
@@ -11,10 +11,10 @@ in the GitHub UI, under Settings:
 
 ## Branching
 
-Trunk-based. `main` is always deployable and is protected — no direct pushes.
+Trunk-based. `main` is always deployable and is protected, with no direct pushes.
 
 1. Branch off `main`: `feat/<slice-name>`, `fix/<bug>`, `chore/<task>`.
-2. Keep it short-lived — one slice of work, one branch, one PR.
+2. Keep it short-lived: one slice of work, one branch, one PR.
 3. Open a PR into `main`. It merges once CI is green.
 4. Squash merge, delete the branch.
 
@@ -28,7 +28,7 @@ hook:
 
 feat:     a new feature
 fix:      a bug fix
-chore:    tooling, deps, config — no source change
+chore:    tooling, deps, config, no source change
 docs:     documentation only
 test:     adding or fixing tests
 refactor: code change that's not a fix or a feature
@@ -38,7 +38,7 @@ Examples: `feat: add trail search swipe cards`, `fix: stop background tracking o
 
 ## Tests
 
-Co-locate tests next to the code they cover — **except under `app/`**. Expo Router
+Co-locate tests next to the code they cover, **except under `app/`**. Expo Router
 treats every file in `app/` as a route (its `require.context` only excludes `+api`,
 `+html`, `+middleware`), so a `.test.tsx` there gets bundled into the production build
 and pulls test-only packages along with it. Route component tests live in `__tests__/`

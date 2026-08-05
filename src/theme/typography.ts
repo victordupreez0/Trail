@@ -1,6 +1,6 @@
 import type { TextStyle } from 'react-native';
 
-// Generous line heights and a wide jump between steps — space is what makes a
+// Generous line heights and a wide jump between steps, because space is what makes a
 // screen feel calm rather than busy.
 export const typography = {
   display: { fontSize: 34, fontWeight: '700', letterSpacing: -0.5, lineHeight: 40 },

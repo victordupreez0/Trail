@@ -32,7 +32,7 @@ export function DiscoverScreen() {
         <Text style={typography.display}>Discover</Text>
         <View style={styles.hint}>
           <Ionicons name="swap-vertical-outline" size={14} color={colors.muted} />
-          <Text style={styles.hintText}>Swipe up to save, down to skip — or tap to read more</Text>
+          <Text style={styles.hintText}>Swipe up to save, down to skip, or tap to read more</Text>
         </View>
       </View>
 

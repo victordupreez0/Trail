@@ -1,5 +1,5 @@
 // The curated trail catalog. Shared by the UI (static/mock data for now) and
-// scripts/seed-trails.ts (writes the same data into Firestore) — one dataset.
+// scripts/seed-trails.ts (writes the same data into Firestore). One dataset, two uses.
 export type Trail = {
   id: string;
   name: string;
@@ -10,8 +10,8 @@ export type Trail = {
   description: string;
   photoUrl: string;
   location: { latitude: number; longitude: number };
-  // ponytail: a simplified 3-4 point polyline, not a real GPX track — swap for
-  // recorded/traced routes once the app supports uploading them.
+  // A simplified 3-4 point polyline, not a real GPX track. Swap for
+  // recorded or traced routes once the app supports uploading them.
   path: { latitude: number; longitude: number }[];
 };
 
@@ -41,7 +41,7 @@ export const trails: Trail[] = [
     elevationGainM: 700,
     region: 'Cape Town, South Africa',
     description:
-      'The most direct route up Table Mountain — steep, exposed, and unforgiving on the knees.',
+      'The most direct route up Table Mountain. Steep, exposed, and unforgiving on the knees.',
     photoUrl: 'https://images.unsplash.com/photo-1580060839484-45551a76ba13',
     location: { latitude: -33.9628, longitude: 18.4055 },
     path: [
@@ -188,7 +188,7 @@ export const trails: Trail[] = [
     elevationGainM: 720,
     region: 'Cape Town, South Africa',
     description:
-      "Scrambly, exposed route up Table Mountain's front face — chains and ladders required.",
+      "Scrambly, exposed route up Table Mountain's front face. Chains and ladders required.",
     photoUrl: 'https://images.unsplash.com/photo-1591117747293-0c48b3184e08',
     location: { latitude: -33.96, longitude: 18.402 },
     path: [
@@ -263,7 +263,7 @@ export const trails: Trail[] = [
   },
   {
     id: 'otter-trail-day1',
-    name: 'Otter Trail — Day 1',
+    name: 'Otter Trail: Day 1',
     difficulty: 'moderate',
     distanceM: 4800,
     elevationGainM: 300,
@@ -333,7 +333,7 @@ export const trails: Trail[] = [
     distanceM: 9000,
     elevationGainM: 480,
     region: 'Cape Town, South Africa',
-    description: 'Pristine indigenous forest section of the Hoerikwaggo Trail — permit required.',
+    description: 'Pristine indigenous forest section of the Hoerikwaggo Trail. Permit required.',
     photoUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
     location: { latitude: -34.0, longitude: 18.3833 },
     path: [

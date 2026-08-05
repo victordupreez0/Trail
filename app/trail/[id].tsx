@@ -116,7 +116,7 @@ export default function TrailDetail() {
       </ScrollView>
 
       {/* Safety-critical and primary actions stay as real buttons, pinned where a
-          thumb reaches — the gesture-first constraint doesn't apply here. */}
+          thumb reaches. The gesture-first constraint doesn't apply here. */}
       <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <Pressable
           accessibilityRole="button"

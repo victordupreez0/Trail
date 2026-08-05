@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
-// In-memory only — no persistence. Every reload replays onboarding → auth → app,
+// In-memory only, with no persistence. Every reload replays onboarding, auth, then app,
 // which is useful for a live demo. Gets replaced by real Firebase Auth + Firestore
 // listeners once the backend lands; the screens consuming this context don't change.
 type AppStateValue = {

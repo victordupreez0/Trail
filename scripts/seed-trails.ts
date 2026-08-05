@@ -1,7 +1,7 @@
 /**
  * Seeds the curated trail catalog into Firestore's `trails` collection.
  *
- * Auth: uses Application Default Credentials — point GOOGLE_APPLICATION_CREDENTIALS
+ * Auth: uses Application Default Credentials. Point GOOGLE_APPLICATION_CREDENTIALS
  * at a service account key (Firebase console → Project settings → Service accounts).
  * Against the local emulator instead, set FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
  * (the Admin SDK reads it automatically) and no real credentials are needed.

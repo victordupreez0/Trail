@@ -18,7 +18,7 @@ export default function CreateGroup() {
   const [trailId, setTrailId] = useState(trails[0].id);
 
   const create = () => {
-    // No backend yet — this activates the seeded demo group rather than
+    // No backend yet, so this activates the seeded demo group rather than
     // persisting a new one. Becomes a Firestore write once groups land.
     setActiveGroupId('group-1');
     router.back();

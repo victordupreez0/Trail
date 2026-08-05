@@ -76,7 +76,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 54, // large tap target — accessibility commitment from the pitch
+    minHeight: 54, // large tap target, an accessibility commitment from the pitch
     paddingHorizontal: spacing.lg,
     borderRadius: radius.lg,
     alignItems: 'center',

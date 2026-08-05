@@ -12,7 +12,7 @@ export function TrailCard({ trail, height = 200 }: { trail: Trail; height?: numb
   return (
     <View style={[styles.card, { height }]}>
       <Image source={{ uri: trail.photoUrl }} style={styles.photo} resizeMode="cover" />
-      {/* Photos vary wildly in brightness — the scrim guarantees the title stays readable. */}
+      {/* Photos vary wildly in brightness, so the scrim guarantees the title stays readable. */}
       <LinearGradient
         colors={['transparent', 'rgba(15,26,21,0.25)', 'rgba(15,26,21,0.88)']}
         locations={[0, 0.45, 1]}

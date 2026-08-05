@@ -153,7 +153,7 @@ export function SwipeDeck({
       </View>
 
       {/* Gesture-first is the constraint, but the actions still need a visible,
-          reachable fallback — swiping is not discoverable on its own. */}
+          reachable fallback, because swiping is not discoverable on its own. */}
       <View style={styles.actions}>
         <Pressable
           accessibilityRole="button"

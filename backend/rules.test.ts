@@ -20,7 +20,7 @@ beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: 'trail-rules-test',
     firestore: {
-      rules: readFileSync(path.resolve(__dirname, '../firestore.rules'), 'utf8'),
+      rules: readFileSync(path.resolve(__dirname, './firestore.rules'), 'utf8'),
       host: '127.0.0.1',
       port: 8080,
     },

@@ -13,7 +13,7 @@ import { signIn, signOutNow, signUp } from '../lib/auth';
 import { auth, db } from '../lib/firebase';
 
 // Auth and saved trails are real (Firebase). Saved trails live at
-// users/{uid}/savedTrails/{trailId}, matching firestore.rules; the active group is
+// users/{uid}/savedTrails/{trailId}, matching backend/firestore.rules; the active group is
 // still an in-memory stand-in, replaced by a Firestore listener once Slice 3 lands.
 // The screens consuming this context don't change when that happens.
 type AppStateValue = {

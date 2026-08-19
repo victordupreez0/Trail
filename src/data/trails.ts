@@ -1,5 +1,5 @@
 // The curated trail catalog. Shared by the UI (static/mock data for now) and
-// scripts/seed-trails.ts (writes the same data into Firestore). One dataset, two uses.
+// backend/seed-trails.ts (writes the same data into Firestore). One dataset, two uses.
 import type { ImageSourcePropType } from 'react-native';
 
 export type Trail = {
@@ -13,7 +13,7 @@ export type Trail = {
   // Bundled with the app, so photos render instantly and work with no network.
   // Remote URLs proved unreliable on venue wifi and are a poor demo dependency.
   photo: ImageSourcePropType;
-  // The same image hosted remotely, written to Firestore by scripts/seed-trails.ts
+  // The same image hosted remotely, written to Firestore by backend/seed-trails.ts
   // for when trail data is served from the backend.
   photoUrl: string;
   location: { latitude: number; longitude: number };

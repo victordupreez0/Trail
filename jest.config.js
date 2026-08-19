@@ -1,4 +1,4 @@
 module.exports = {
   preset: 'jest-expo',
-  testPathIgnorePatterns: ['/node_modules/', '/firestore/'],
+  testPathIgnorePatterns: ['/node_modules/', '/backend/'],
 };

@@ -1,13 +1,21 @@
 import { onAuthStateChanged, type User } from 'firebase/auth';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { signIn, signOutNow, signUp } from '../lib/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 
-// Auth is real (Firebase, session-persisted to AsyncStorage automatically by the SDK).
-// Saved trails and the active group are still in-memory stand-ins, replaced by
-// Firestore listeners once Slice 2/3 lands; the screens consuming this context don't
-// change when that happens.
+// Auth and saved trails are real (Firebase). Saved trails live at
+// users/{uid}/savedTrails/{trailId}, matching firestore.rules; the active group is
+// still an in-memory stand-in, replaced by a Firestore listener once Slice 3 lands.
+// The screens consuming this context don't change when that happens.
 type AppStateValue = {
   hasOnboarded: boolean;
   completeOnboarding: () => void;
@@ -30,7 +38,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [savedTrailIds, setSavedTrailIds] = useState<string[]>(['lions-head', 'pipe-track']);
+  const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>('group-1');
 
   useEffect(() => {
@@ -39,6 +47,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setAuthReady(true);
     });
   }, []);
+
+  // Live-syncs saved trails to Firestore. Cleared on sign-out so switching accounts
+  // can't leak one user's saves into another's.
+  useEffect(() => {
+    if (!user) {
+      setSavedTrailIds([]);
+      return;
+    }
+    const ref = collection(db, 'users', user.uid, 'savedTrails');
+    return onSnapshot(
+      ref,
+      (snap) => setSavedTrailIds(snap.docs.map((d) => d.id)),
+      (err) => console.warn('savedTrails listener failed', err),
+    );
+  }, [user]);
 
   const value = useMemo<AppStateValue>(
     () => ({
@@ -56,10 +79,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       logout: () => signOutNow(),
       savedTrailIds,
       isSaved: (trailId) => savedTrailIds.includes(trailId),
-      toggleSaved: (trailId) =>
-        setSavedTrailIds((ids) =>
-          ids.includes(trailId) ? ids.filter((id) => id !== trailId) : [...ids, trailId],
-        ),
+      toggleSaved: (trailId) => {
+        if (!user) return;
+        const ref = doc(db, 'users', user.uid, 'savedTrails', trailId);
+        const write = savedTrailIds.includes(trailId)
+          ? deleteDoc(ref)
+          : setDoc(ref, { savedAt: serverTimestamp() });
+        // The onSnapshot listener above updates local state; a failed write here
+        // means a lost save, so it's worth surfacing, not swallowing.
+        write.catch((err) => console.warn('toggleSaved write failed', err));
+      },
       activeGroupId,
       setActiveGroupId,
     }),

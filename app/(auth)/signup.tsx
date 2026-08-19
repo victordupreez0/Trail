@@ -1,25 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { authMessage } from '../../src/lib/auth';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function Signup() {
-  const { login } = useAppState();
+  const { signUp } = useAppState();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
-    login();
-    router.replace('/(app)');
+  const submit = async () => {
+    if (!name.trim() || !email.trim() || password.length < 6) {
+      setError('Fill in your name, email, and a password of at least 6 characters.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signUp(name, email.trim(), password);
+      // No navigation here: app/index.tsx redirects once Firebase's auth state changes.
+    } catch (err) {
+      setError(authMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -71,7 +86,9 @@ export default function Signup() {
             />
           </View>
 
-          <Button label="Create account" onPress={submit} />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Button label="Create account" onPress={submit} loading={submitting} />
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account?</Text>
@@ -104,6 +121,7 @@ const styles = StyleSheet.create({
   head: { gap: 4 },
   sub: { ...typography.body, color: colors.muted },
   form: { gap: spacing.md },
+  error: { ...typography.caption, color: colors.danger },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: 5, alignItems: 'center' },
   footerText: { ...typography.caption, color: colors.muted },
   link: { ...typography.caption, color: colors.primary, fontWeight: '700' },

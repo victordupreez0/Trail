@@ -12,22 +12,27 @@ import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
+// hydrationGoalMl has no Firestore home yet, so it still comes from the static profile.
 export function ProfileScreen() {
-  const { logout, savedTrailIds } = useAppState();
+  const { user, logout, savedTrailIds } = useAppState();
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
   const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
 
+  const displayName = user?.displayName || user?.email?.split('@')[0] || currentUser.displayName;
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const email = user?.email ?? currentUser.email;
+
   const handleLogout = () => {
+    // No navigation here: app/index.tsx redirects once Firebase's auth state changes.
     logout();
-    router.replace('/(auth)/login');
   };
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
       <View style={styles.head}>
-        <Avatar initials={currentUser.initials} color={colors.primary} size={78} />
-        <Text style={typography.title}>{currentUser.displayName}</Text>
-        <Text style={styles.email}>{currentUser.email}</Text>
+        <Avatar initials={initials} color={colors.primary} size={78} />
+        <Text style={typography.title}>{displayName}</Text>
+        <Text style={styles.email}>{email}</Text>
       </View>
 
       <View style={styles.statRow}>

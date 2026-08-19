@@ -1,14 +1,22 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-// In-memory only, with no persistence. Every reload replays onboarding, auth, then app,
-// which is useful for a live demo. Gets replaced by real Firebase Auth + Firestore
-// listeners once the backend lands; the screens consuming this context don't change.
+import { signIn, signOutNow, signUp } from '../lib/auth';
+import { auth } from '../lib/firebase';
+
+// Auth is real (Firebase, session-persisted to AsyncStorage automatically by the SDK).
+// Saved trails and the active group are still in-memory stand-ins, replaced by
+// Firestore listeners once Slice 2/3 lands; the screens consuming this context don't
+// change when that happens.
 type AppStateValue = {
   hasOnboarded: boolean;
   completeOnboarding: () => void;
+  authReady: boolean;
+  user: User | null;
   isAuthed: boolean;
-  login: () => void;
-  logout: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   savedTrailIds: string[];
   isSaved: (trailId: string) => boolean;
   toggleSaved: (trailId: string) => void;
@@ -20,17 +28,32 @@ const AppStateContext = createContext<AppStateValue | null>(null);
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [isAuthed, setIsAuthed] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>(['lions-head', 'pipe-track']);
   const [activeGroupId, setActiveGroupId] = useState<string | null>('group-1');
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+  }, []);
 
   const value = useMemo<AppStateValue>(
     () => ({
       hasOnboarded,
       completeOnboarding: () => setHasOnboarded(true),
-      isAuthed,
-      login: () => setIsAuthed(true),
-      logout: () => setIsAuthed(false),
+      authReady,
+      user,
+      isAuthed: user !== null,
+      signIn: async (email, password) => {
+        await signIn(email, password);
+      },
+      signUp: async (name, email, password) => {
+        await signUp(name, email, password);
+      },
+      logout: () => signOutNow(),
       savedTrailIds,
       isSaved: (trailId) => savedTrailIds.includes(trailId),
       toggleSaved: (trailId) =>
@@ -40,7 +63,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       activeGroupId,
       setActiveGroupId,
     }),
-    [hasOnboarded, isAuthed, savedTrailIds, activeGroupId],
+    [hasOnboarded, authReady, user, savedTrailIds, activeGroupId],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

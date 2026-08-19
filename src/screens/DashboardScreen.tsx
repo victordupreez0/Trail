@@ -17,11 +17,13 @@ import { typography } from '../theme/typography';
 const HYDRATION_ML = 1200;
 
 export function DashboardScreen() {
-  const { activeGroupId, savedTrailIds } = useAppState();
+  const { user, activeGroupId, savedTrailIds } = useAppState();
   const group = groups.find((g) => g.id === activeGroupId);
   const activeTrail = group ? trails.find((t) => t.id === group.trailId) : undefined;
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
 
+  const firstName = (user?.displayName || currentUser.displayName).split(' ')[0];
+  const initials = firstName.slice(0, 2).toUpperCase();
   const hydrationPct = Math.min(1, HYDRATION_ML / currentUser.hydrationGoalMl);
 
   return (
@@ -29,9 +31,9 @@ export function DashboardScreen() {
       <View style={styles.greetingRow}>
         <View style={styles.greeting}>
           <Text style={styles.eyebrow}>Good morning</Text>
-          <Text style={typography.display}>{currentUser.displayName}</Text>
+          <Text style={typography.display}>{firstName}</Text>
         </View>
-        <Avatar initials={currentUser.initials} color={colors.primary} size={46} />
+        <Avatar initials={initials} color={colors.primary} size={46} />
       </View>
 
       {activeTrail && group ? (

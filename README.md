@@ -38,9 +38,11 @@ Scan the QR code with the **Expo Go** app on your phone (same WiFi as your compu
 network blocks device-to-device traffic (common on campus/guest WiFi), use
 `npm run start:tunnel` instead.
 
-No `.env` is required yet. The app currently runs entirely on static in-app data (see
-[What's real vs mocked](#whats-real-vs-mocked)); `.env.example` documents the Firebase
-config that Slices 1+ will need.
+Auth needs a Firebase project: copy `.env.example` to `.env` and fill in the six
+`EXPO_PUBLIC_FIREBASE_*` values from your project's web app config (Firebase console →
+Project settings → Your apps). Email/Password sign-in must be enabled under
+Authentication → Sign-in method. Everything else in the app still runs on static in-app
+data (see [What's real vs mocked](#whats-real-vs-mocked)).
 
 ## Screens
 
@@ -49,8 +51,8 @@ Twelve screens, navigable end to end on static data:
 | Route                   | Screen       | What it does today                                                   |
 | ----------------------- | ------------ | -------------------------------------------------------------------- |
 | `app/onboarding.tsx`    | Onboarding   | Three-slide pager introducing the concept                            |
-| `app/(auth)/login.tsx`  | Login        | Form UI; any input logs you in                                       |
-| `app/(auth)/signup.tsx` | Sign up      | Form UI; any input logs you in                                       |
+| `app/(auth)/login.tsx`  | Login        | Real Firebase email/password sign-in, with error handling            |
+| `app/(auth)/signup.tsx` | Sign up      | Real Firebase account creation, sets display name                    |
 | `app/(app)/index.tsx`   | App shell    | Horizontal pager across the five screens below, plus a tab bar       |
 | ...Today                | Dashboard    | Active hike hero, party size, water and trail stats                  |
 | ...Discover             | Swipe deck   | Swipe up/down through the 24-trail catalog; tap for detail           |
@@ -64,16 +66,16 @@ Twelve screens, navigable end to end on static data:
 
 ## Architecture
 
-| Concern                    | Choice                                                     | Why                                                                                                                                                                                                         |
-| -------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework                  | Expo SDK 54, React Native, TypeScript strict               | Mandated by the brief; pinned to 54 (not the newest SDK) because Apple's review of the published Expo Go app lags new SDKs by months, and 54 is what Expo Go actually runs today                            |
-| Navigation                 | Expo Router (file-based)                                   | Auth stack and modals for free; routes above map 1:1 to files in `app/`                                                                                                                                     |
-| Main shell                 | `react-native-pager-view`                                  | The pitch calls for "a pager, not a tab bar"; the tab bar in `app/(app)/index.tsx` is a visible affordance for the same swipe                                                                               |
-| Maps                       | `react-native-maps`                                        | Trail routes and party positions; works inside Expo Go, no dev build needed for this                                                                                                                        |
-| Gestures/motion            | `react-native-gesture-handler` + `react-native-reanimated` | Powers the swipe deck (`src/components/SwipeDeck.tsx`) and earns both the gesture-first constraint and the tweening rubric item                                                                             |
-| Backend (built, not wired) | Firebase JS SDK, Auth + Firestore                          | `src/lib/firebase.ts` initializes it correctly, but no screen calls it yet, see below                                                                                                                       |
-| State                      | React Context, no persistence                              | `src/state/AppState.tsx` holds auth/onboarding/saved-trail state in memory; every reload replays onboarding, which is convenient for a live demo and gets replaced by real Firestore listeners in Slice 1-2 |
-| Package manager            | npm, `legacy-peer-deps=true`                               | See `.npmrc`                                                                                                                                                                                                |
+| Concern         | Choice                                                     | Why                                                                                                                                                                                                                                               |
+| --------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | Expo SDK 54, React Native, TypeScript strict               | Mandated by the brief; pinned to 54 (not the newest SDK) because Apple's review of the published Expo Go app lags new SDKs by months, and 54 is what Expo Go actually runs today                                                                  |
+| Navigation      | Expo Router (file-based)                                   | Auth stack and modals for free; routes above map 1:1 to files in `app/`                                                                                                                                                                           |
+| Main shell      | `react-native-pager-view`                                  | The pitch calls for "a pager, not a tab bar"; the tab bar in `app/(app)/index.tsx` is a visible affordance for the same swipe                                                                                                                     |
+| Maps            | `react-native-maps`                                        | Trail routes and party positions; works inside Expo Go, no dev build needed for this                                                                                                                                                              |
+| Gestures/motion | `react-native-gesture-handler` + `react-native-reanimated` | Powers the swipe deck (`src/components/SwipeDeck.tsx`) and earns both the gesture-first constraint and the tweening rubric item                                                                                                                   |
+| Backend         | Firebase JS SDK, Auth wired, Firestore not yet             | `src/lib/auth.ts` wraps sign-in/sign-up/sign-out; `src/state/AppState.tsx` subscribes to `onAuthStateChanged`, so a signed-in session survives an app restart with no extra code (the SDK persists to AsyncStorage on React Native automatically) |
+| State           | React Context                                              | `src/state/AppState.tsx` holds the real Firebase user plus onboarding/saved-trail state in memory; saved trails and groups get replaced by Firestore listeners in Slice 2/3, the screens consuming this context don't change when that happens    |
+| Package manager | npm, `legacy-peer-deps=true`                               | See `.npmrc`                                                                                                                                                                                                                                      |
 
 Everything a screen needs comes from `src/data/{trails,groups,user}.ts`, static
 TypeScript modules, not network calls. `src/data/trails.ts` is also imported by
@@ -125,26 +127,26 @@ Being upfront about this is more useful than dressing it up: this is a static
 walkthrough of all 12 screens, wired to mock data, with the backend built alongside it
 but not yet connected.
 
-| Working                                       | Static stand-in                           | Not built yet                      |
-| --------------------------------------------- | ----------------------------------------- | ---------------------------------- |
-| Navigation across all 12 screens              | Auth: any login/signup input succeeds     | Real Firebase Auth                 |
-| Swipe-to-save/skip gesture (unit tested)      | Saved trails: in-memory, resets on reload | Firestore-backed CRUD              |
-| Trail search UI, maps, route polylines        | Group membership and party positions      | Live position sync (10s KPI)       |
-| Firestore security rules (rules-tested in CI) | Water/hydration stat                      | Background location tracking       |
-| Firebase client init (`src/lib/firebase.ts`)  |                                           | Local hydration/rest notifications |
+| Working                                        | Static stand-in                           | Not built yet                      |
+| ---------------------------------------------- | ----------------------------------------- | ---------------------------------- |
+| Navigation across all 12 screens               | Saved trails: in-memory, resets on reload | Firestore-backed CRUD              |
+| Firebase email/password auth, session persists | Group membership and party positions      | Live position sync (10s KPI)       |
+| Swipe-to-save/skip gesture (unit tested)       | Water/hydration stat                      | Background location tracking       |
+| Trail search UI, maps, route polylines         |                                           | Local hydration/rest notifications |
+| Firestore security rules (rules-tested in CI)  |                                           |                                    |
 
 ## Roadmap
 
 Mapped to the pitch's five-slice plan (`docs/specs/2026-08-03-trail-design.md`):
 
-| Slice | Scope                                                                        | Status                                                               |
-| ----- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 0     | Repo, conventions, CI, Firestore rules + tests, design tokens                | Done                                                                 |
-| 1     | Firebase Auth, onboarding, session persistence                               | Onboarding UI done, auth not wired                                   |
-| 2     | Trail seed, swipe discovery, saved-trails CRUD                               | UI and gesture logic done, Firestore CRUD next                       |
-| 3     | Groups, background tracking, live party map                                  | UI done, tracking and live sync next                                 |
-| 4     | Calm dashboard, hydration/rest notifications, reanimated polish              | Dashboard UI done, notifications next                                |
-| 5     | Safety content, real icon/splash, accessibility pass, EAS builds, demo video | Safety screen and icons done, accessibility pass and demo video next |
+| Slice | Scope                                                                        | Status                                                                |
+| ----- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 0     | Repo, conventions, CI, Firestore rules + tests, design tokens                | Done                                                                  |
+| 1     | Firebase Auth, onboarding, session persistence                               | Done: real sign-in/sign-up/sign-out, session persists across restarts |
+| 2     | Trail seed, swipe discovery, saved-trails CRUD                               | UI and gesture logic done, Firestore CRUD next                        |
+| 3     | Groups, background tracking, live party map                                  | UI done, tracking and live sync next                                  |
+| 4     | Calm dashboard, hydration/rest notifications, reanimated polish              | Dashboard UI done, notifications next                                 |
+| 5     | Safety content, real icon/splash, accessibility pass, EAS builds, demo video | Safety screen and icons done, accessibility pass and demo video next  |
 
 ## Quality
 
@@ -160,11 +162,13 @@ Mapped to the pitch's five-slice plan (`docs/specs/2026-08-03-trail-design.md`):
 | `npm run seed`                    | Seed Firestore with the curated trail set (Admin SDK, safe to run twice) |
 
 CI (`.github/workflows/ci.yml`) runs typecheck, lint, format check, unit tests, and
-Firestore rules tests on every PR and push to `main`. The one unit test that exists so
-far, `__tests__/decideSwipe.test.ts`, is a deliberate example of testing gesture logic
-independent of the gesture handler itself: `src/lib/swipe.ts`'s `decideSwipe` uses a
-`'worklet'` directive so it can run on the UI thread, but stays a plain testable function
-in Node.
+Firestore rules tests on every PR and push to `main`. Two unit tests exist so far:
+`__tests__/decideSwipe.test.ts` tests gesture logic independent of the gesture handler
+itself (`src/lib/swipe.ts`'s `decideSwipe` uses a `'worklet'` directive so it can run on
+the UI thread, but stays a plain testable function in Node); `__tests__/authMessage.test.ts`
+tests that Firebase's raw error codes map to sentences a user can read, from
+`src/lib/authMessage.ts` (split out of `src/lib/auth.ts` so it is testable without
+pulling in `firebase/auth`'s ESM build, which Jest can't parse).
 
 ## Conventions
 

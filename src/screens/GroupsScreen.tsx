@@ -157,9 +157,17 @@ export function GroupsScreen() {
   const endTheHike = async () => {
     setEndError(null);
     setEnding(true);
+    // Read before awaiting: subscribeToActiveGroupForUser clears activeGroup to null
+    // almost as soon as endHike's write lands, so these would be gone after.
+    const trailId = activeGroup.trailId;
+    const startedAtMs = activeGroup.startedAt?.toMillis() ?? Date.now();
+    const partySize = activeGroup.memberIds.length;
     try {
       await endHike();
       haptics.success();
+      router.push(
+        `/hike/summary?trailId=${trailId}&startedAtMs=${startedAtMs}&partySize=${partySize}`,
+      );
     } catch (err) {
       setEndError(err instanceof Error ? err.message : 'Could not end the hike.');
     } finally {

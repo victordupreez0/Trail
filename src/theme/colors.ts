@@ -23,6 +23,11 @@ export const colors = {
 // calm palette, nothing neon.
 export const memberPalette = ['#2F6B4F', '#B3432B', '#5C6BC0', '#C2703D', '#3E7C8A', '#8A5FA6'];
 
+// The one-off ceremony gradient for app/hike/summary.tsx. Dawn navy through the
+// existing accent terracotta into a warm gold - the only sunrise-toned stops in the
+// app, so they live here rather than as a literal on that one screen.
+export const sunrise = ['#2E3B55', '#6B4E71', colors.accent, '#F5C177'] as const;
+
 // Consistent soft elevation, pairing iOS shadow props with Android elevation.
 export const shadow = {
   card: {

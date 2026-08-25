@@ -11,6 +11,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
 import { trails } from '../data/trails';
 import { useMotion } from '../hooks/useMotion';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
@@ -22,6 +23,7 @@ const UNDO_WINDOW_MS = 4000;
 
 export function SavedScreen() {
   const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved } = useAppState();
+  const tabBarInset = useTabBarInset();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -68,7 +70,7 @@ export function SavedScreen() {
         data={saved}
         keyExtractor={(t) => t.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarInset }]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={typography.display}>Saved</Text>
@@ -95,7 +97,7 @@ export function SavedScreen() {
       />
 
       {pending ? (
-        <View style={styles.snackbar}>
+        <View style={[styles.snackbar, { bottom: spacing.lg + tabBarInset }]}>
           <Text style={styles.snackbarText} numberOfLines={1}>
             Removed {pending.name}
           </Text>

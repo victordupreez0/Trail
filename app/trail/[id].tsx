@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
+import { GlassSurface } from '../../src/components/ui/GlassSurface';
 import { trails } from '../../src/data/trails';
 import { useAppState } from '../../src/state/AppState';
 import { colors, shadow } from '../../src/theme/colors';
@@ -83,11 +84,13 @@ export default function TrailDetail() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            style={[styles.back, { top: insets.top + spacing.sm }]}
+            style={[styles.backWrap, { top: insets.top + spacing.sm }]}
             onPress={() => router.back()}
             hitSlop={10}
           >
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
+            <GlassSurface style={styles.back}>
+              <Ionicons name="chevron-back" size={22} color={colors.text} />
+            </GlassSurface>
           </Pressable>
         </View>
 
@@ -230,13 +233,11 @@ const styles = StyleSheet.create({
   },
   heroWrap: { height: 300, backgroundColor: colors.surfaceAlt },
   hero: { width: '100%', height: '100%' },
+  backWrap: { position: 'absolute', left: spacing.md },
   back: {
-    position: 'absolute',
-    left: spacing.md,
     width: 40,
     height: 40,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.card,

@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Skeleton } from '../components/ui/Skeleton';
 import { trails } from '../data/trails';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { fillRatio, todayKey, waterToday } from '../lib/hydration';
 import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
 import { useAppState } from '../state/AppState';
@@ -39,6 +40,7 @@ export function DashboardScreen() {
     savedTrailMeta,
     userDoc,
   } = useAppState();
+  const tabBarInset = useTabBarInset();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -118,7 +120,10 @@ export function DashboardScreen() {
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarInset }]}
+    >
       <View style={styles.greetingRow}>
         <View style={styles.greeting}>
           <Text style={styles.eyebrow}>Good morning</Text>

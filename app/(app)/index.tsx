@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GlassSurface } from '../../src/components/ui/GlassSurface';
+import { TabBarInsetProvider } from '../../src/hooks/useTabBarInset';
 import { haptics } from '../../src/lib/haptics';
 import { DashboardScreen } from '../../src/screens/DashboardScreen';
 import { DiscoverScreen } from '../../src/screens/DiscoverScreen';
@@ -38,6 +40,10 @@ export default function AppPager() {
     pages.findIndex((p) => p.key === tab),
   );
   const [page, setPage] = useState(initialPage);
+  // Measured, not hardcoded: the bar's height is intrinsic to its label text, so it
+  // grows at the largest system font size. Published through TabBarInsetProvider so
+  // each screen can leave exactly enough clearance for content to pass underneath it.
+  const [tabBarHeight, setTabBarHeight] = useState(0);
 
   const goTo = (i: number) => {
     if (i !== page) haptics.selection();
@@ -46,43 +52,50 @@ export default function AppPager() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <PagerView
-        ref={pagerRef}
-        style={styles.pager}
-        initialPage={initialPage}
-        onPageSelected={(e) => setPage(e.nativeEvent.position)}
-      >
-        {pages.map((p) => (
-          <View key={p.key} style={styles.page}>
-            {p.render()}
-          </View>
-        ))}
-      </PagerView>
+      <TabBarInsetProvider height={tabBarHeight}>
+        <PagerView
+          ref={pagerRef}
+          style={styles.pager}
+          initialPage={initialPage}
+          onPageSelected={(e) => setPage(e.nativeEvent.position)}
+        >
+          {pages.map((p) => (
+            <View key={p.key} style={styles.page}>
+              {p.render()}
+            </View>
+          ))}
+        </PagerView>
+      </TabBarInsetProvider>
 
-      <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
-        {pages.map((p, i) => {
-          const active = i === page;
-          return (
-            <Pressable
-              key={p.key}
-              accessibilityRole="tab"
-              accessibilityLabel={p.label}
-              accessibilityState={{ selected: active }}
-              style={styles.tab}
-              onPress={() => goTo(i)}
-            >
-              <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-                <Ionicons
-                  name={(active ? p.icon : `${p.icon}-outline`) as keyof typeof Ionicons.glyphMap}
-                  size={21}
-                  color={active ? colors.primaryDark : colors.muted}
-                />
-              </View>
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{p.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <GlassSurface
+        style={styles.tabBar}
+        onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height)}
+      >
+        <View style={[styles.tabBarInner, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          {pages.map((p, i) => {
+            const active = i === page;
+            return (
+              <Pressable
+                key={p.key}
+                accessibilityRole="tab"
+                accessibilityLabel={p.label}
+                accessibilityState={{ selected: active }}
+                style={styles.tab}
+                onPress={() => goTo(i)}
+              >
+                <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+                  <Ionicons
+                    name={(active ? p.icon : `${p.icon}-outline`) as keyof typeof Ionicons.glyphMap}
+                    size={21}
+                    color={active ? colors.primaryDark : colors.muted}
+                  />
+                </View>
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{p.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </GlassSurface>
     </SafeAreaView>
   );
 }
@@ -91,11 +104,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   pager: { flex: 1 },
   page: { flex: 1, paddingHorizontal: spacing.lg },
-  tabBar: {
+  tabBar: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  tabBarInner: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.xs,
   },

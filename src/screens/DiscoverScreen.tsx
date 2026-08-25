@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SwipeDeck, type SwipeDecision } from '../components/SwipeDeck';
 import type { Trail } from '../data/trails';
 import { trails } from '../data/trails';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { useAppState } from '../state/AppState';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -13,6 +14,7 @@ import { typography } from '../theme/typography';
 
 export function DiscoverScreen() {
   const { savedTrailIds, toggleSaved } = useAppState();
+  const tabBarInset = useTabBarInset();
 
   // Snapshot once per mount so the deck doesn't reshuffle underneath a swipe as
   // savedTrailIds changes.
@@ -32,7 +34,7 @@ export function DiscoverScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: spacing.md + tabBarInset }]}>
       <View style={styles.header}>
         <Text style={typography.display}>Discover</Text>
         <View style={styles.hint}>

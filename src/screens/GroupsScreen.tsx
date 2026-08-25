@@ -16,10 +16,12 @@ import { AnimatedMarker } from '../components/AnimatedMarker';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { GlassSurface } from '../components/ui/GlassSurface';
 import { Skeleton } from '../components/ui/Skeleton';
 import { trails } from '../data/trails';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useMotion } from '../hooks/useMotion';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
 import {
   breadcrumbSegments,
@@ -58,6 +60,7 @@ export function GroupsScreen() {
   const [breadcrumbs, setBreadcrumbs] = useState<Record<string, Coordinate[]>>({});
   const mapRef = useRef<MapView>(null);
   const { reduced } = useMotion();
+  const tabBarInset = useTabBarInset();
 
   const status = useLiveLocation(
     activeGroup?.id ?? null,
@@ -225,15 +228,22 @@ export function GroupsScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Recentre map on the trail"
-            style={styles.recentre}
+            style={styles.recentreWrap}
             onPress={() => mapRef.current?.animateToRegion(region, 500)}
           >
-            <Ionicons name="locate" size={20} color={colors.text} />
+            <GlassSurface style={styles.recentre}>
+              <Ionicons name="locate" size={20} color={colors.text} />
+            </GlassSurface>
           </Pressable>
         </View>
       ) : null}
 
-      <View style={styles.sheet}>
+      {/* Only overlaps the map by radius.xl (the negative marginTop below), so the
+          blur reads as a frosted lip along the top edge rather than the whole sheet -
+          the sheet itself sits over the screen background beneath that. Swap to
+          solid if this stutters against a moving map on a mid-range device; see
+          BUILD-PLAN.md's S2 performance note. */}
+      <GlassSurface style={[styles.sheet, { paddingBottom: spacing.md + tabBarInset }]}>
         <View style={styles.grabber} />
         <View style={styles.sheetHeader}>
           <View style={styles.sheetTitle}>
@@ -289,7 +299,7 @@ export function GroupsScreen() {
             onPress={endTheHike}
           />
         ) : null}
-      </View>
+      </GlassSurface>
     </View>
   );
 }
@@ -331,14 +341,11 @@ const styles = StyleSheet.create({
   mapWrap: { backgroundColor: colors.surfaceAlt },
   pin: { borderWidth: 3, borderColor: colors.surface, borderRadius: radius.pill, ...shadow.card },
   pinStale: { opacity: 0.45 },
+  recentreWrap: { position: 'absolute', top: spacing.md, right: spacing.md },
   recentre: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
     width: 44,
     height: 44,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.card,
@@ -346,15 +353,16 @@ const styles = StyleSheet.create({
   sheet: {
     flex: 1,
     marginTop: -radius.xl,
-    backgroundColor: colors.background,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
     gap: spacing.md,
-    // Pushes the button to the bottom of whatever space is left, so it can
-    // never be clipped by the tab bar.
+    // Pushes the button to the bottom of whatever space is left. The tab bar is
+    // absolutely positioned (see app/(app)/index.tsx) so it no longer reserves flex
+    // space of its own; useTabBarInset's paddingBottom above is what keeps this
+    // clear of it instead.
     justifyContent: 'space-between',
   },
   grabber: {

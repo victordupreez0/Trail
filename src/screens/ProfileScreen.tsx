@@ -18,6 +18,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { trails } from '../data/trails';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { removeAvatar, uploadAvatar } from '../lib/profile';
 import { requestPermission } from '../lib/reminders';
 import { useAppState } from '../state/AppState';
@@ -33,6 +34,7 @@ const DEFAULT_HYDRATION_GOAL_ML = 2000;
 
 export function ProfileScreen() {
   const { user, logout, savedTrailIds, userDoc, setReminderSettings } = useAppState();
+  const tabBarInset = useTabBarInset();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -127,7 +129,10 @@ export function ProfileScreen() {
   };
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarInset }]}
+    >
       <View style={styles.head}>
         <Pressable
           accessibilityRole="button"

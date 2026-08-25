@@ -16,6 +16,12 @@ export const colors = {
   shadow: '#1A231E',
 };
 
+// A member's avatar/marker colour is derived from their uid (see memberColor in
+// src/lib/party.ts), never chosen or stored, so every device agrees on the same
+// person's colour for free. Kept distinguishable at a glance but still inside the
+// calm palette, nothing neon.
+export const memberPalette = ['#2F6B4F', '#B3432B', '#5C6BC0', '#C2703D', '#3E7C8A', '#8A5FA6'];
+
 // Consistent soft elevation, pairing iOS shadow props with Android elevation.
 export const shadow = {
   card: {

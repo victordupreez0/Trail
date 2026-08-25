@@ -33,7 +33,15 @@
           "backgroundColor": "#FAF8F3"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Trail shares your location with your hiking party while a hike is active.",
+          "locationWhenInUsePermission": "Trail shares your location with your hiking party while a hike is active.",
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
     ]
   }
 }

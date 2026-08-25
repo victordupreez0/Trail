@@ -10,7 +10,10 @@ import {
 import { db } from './firebase';
 import type { PartyPosition } from '../types/models';
 
-type WritablePosition = Pick<PartyPosition, 'position' | 'accuracy' | 'batteryLevel' | 'moving'>;
+type WritablePosition = Pick<
+  PartyPosition,
+  'displayName' | 'position' | 'accuracy' | 'batteryLevel' | 'moving'
+>;
 
 export async function writePosition(
   groupId: string,

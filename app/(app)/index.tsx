@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
@@ -28,7 +29,15 @@ const pages = [
 export default function AppPager() {
   const pagerRef = useRef<PagerView>(null);
   const insets = useSafeAreaInsets();
-  const [page, setPage] = useState(0);
+  // Lets group/create.tsx and group/join.tsx land on the Party tab after a
+  // successful create/join, e.g. router.replace('/(app)?tab=groups'), rather than
+  // always reopening on Today.
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const initialPage = Math.max(
+    0,
+    pages.findIndex((p) => p.key === tab),
+  );
+  const [page, setPage] = useState(initialPage);
 
   const goTo = (i: number) => {
     if (i !== page) Haptics.selectionAsync().catch(() => {});
@@ -40,7 +49,7 @@ export default function AppPager() {
       <PagerView
         ref={pagerRef}
         style={styles.pager}
-        initialPage={0}
+        initialPage={initialPage}
         onPageSelected={(e) => setPage(e.nativeEvent.position)}
       >
         {pages.map((p) => (

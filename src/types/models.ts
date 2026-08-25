@@ -34,6 +34,11 @@ export type Group = {
 };
 
 export type PartyPosition = {
+  // Denormalised from the writer's own profile: users/{uid} is self-read-only, so a
+  // teammate's position doc is the only place another member's client can see their
+  // name. Safe to duplicate here since it's already self-write / member-read, the
+  // same audience as the position itself.
+  displayName: string;
   position: { latitude: number; longitude: number };
   accuracy: number;
   batteryLevel: number;

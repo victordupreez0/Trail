@@ -12,14 +12,25 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function JoinGroup() {
-  const { setActiveGroupId } = useAppState();
+  const { joinByCode } = useAppState();
   const [code, setCode] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const join = () => {
-    // Mock: any code joins the seeded demo group. Real invite-code lookup
-    // arrives with Firestore groups.
-    setActiveGroupId('group-1');
-    router.back();
+  const join = async () => {
+    if (!code.trim()) {
+      setError('Enter an invite code.');
+      return;
+    }
+    setError(null);
+    setJoining(true);
+    try {
+      await joinByCode(code.trim());
+      router.replace('/(app)?tab=groups');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not join that hike.');
+      setJoining(false);
+    }
   };
 
   return (
@@ -55,8 +66,10 @@ export default function JoinGroup() {
         onChangeText={setCode}
       />
 
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
       <View style={styles.spacer} />
-      <Button label="Join group" icon="enter-outline" onPress={join} />
+      <Button label="Join group" icon="enter-outline" onPress={join} loading={joining} />
     </ScreenContainer>
   );
 }
@@ -75,5 +88,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   sub: { ...typography.body, color: colors.muted, textAlign: 'center' },
+  error: { ...typography.caption, color: colors.danger, textAlign: 'center' },
   spacer: { flex: 1 },
 });

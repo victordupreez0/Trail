@@ -17,8 +17,10 @@ import { typography } from '../theme/typography';
 const HYDRATION_ML = 1200;
 
 export function DashboardScreen() {
-  const { user, activeGroupId, savedTrailIds } = useAppState();
-  const group = groups.find((g) => g.id === activeGroupId);
+  // Rewired onto the real Firestore group in P4; for now this just keeps the mock
+  // hero card compiling against the shape it already expects.
+  const { user, activeGroup, savedTrailIds } = useAppState();
+  const group = groups.find((g) => g.id === activeGroup?.id);
   const activeTrail = group ? trails.find((t) => t.id === group.trailId) : undefined;
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
 

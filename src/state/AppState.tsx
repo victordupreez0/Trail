@@ -39,11 +39,6 @@ type AppStateValue = {
   savedTrailIds: string[];
   isSaved: (trailId: string) => boolean;
   toggleSaved: (trailId: string) => void;
-  // Legacy mock pointer, kept only so app/group/create.tsx, app/group/join.tsx and
-  // app/trail/[id].tsx keep compiling. P2 rewires those screens onto activeGroup /
-  // createGroup / joinByCode below and deletes this pair.
-  activeGroupId: string | null;
-  setActiveGroupId: (groupId: string | null) => void;
   activeGroup: Group | null;
   partyPositions: Record<string, PartyPosition>;
   groupLoading: boolean;
@@ -60,7 +55,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
   const [partyPositions, setPartyPositions] = useState<Record<string, PartyPosition>>({});
@@ -155,8 +149,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         // means a lost save, so it's worth surfacing, not swallowing.
         write.catch((err) => console.warn('toggleSaved write failed', err));
       },
-      activeGroupId,
-      setActiveGroupId,
       activeGroup,
       partyPositions,
       groupLoading,
@@ -184,7 +176,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       authReady,
       user,
       savedTrailIds,
-      activeGroupId,
       activeGroup,
       partyPositions,
       groupLoading,

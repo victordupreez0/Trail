@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -13,15 +13,28 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function CreateGroup() {
-  const { setActiveGroupId } = useAppState();
+  const { createGroup } = useAppState();
+  // "Start hike" on a trail's own screen arrives here with that trail preselected.
+  const { trailId: preselectedTrailId } = useLocalSearchParams<{ trailId?: string }>();
   const [name, setName] = useState('');
-  const [trailId, setTrailId] = useState(trails[0].id);
+  const [trailId, setTrailId] = useState(preselectedTrailId ?? trails[0].id);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const create = () => {
-    // No backend yet, so this activates the seeded demo group rather than
-    // persisting a new one. Becomes a Firestore write once groups land.
-    setActiveGroupId('group-1');
-    router.back();
+  const create = async () => {
+    if (!name.trim()) {
+      setError('Give your group a name.');
+      return;
+    }
+    setError(null);
+    setCreating(true);
+    try {
+      await createGroup(name.trim(), trailId);
+      router.replace('/(app)?tab=groups');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start the hike.');
+      setCreating(false);
+    }
   };
 
   return (
@@ -78,7 +91,9 @@ export default function CreateGroup() {
         }}
       />
 
-      <Button label="Create group" icon="add" onPress={create} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Button label="Create group" icon="add" onPress={create} loading={creating} />
     </ScreenContainer>
   );
 }
@@ -87,6 +102,7 @@ const styles = StyleSheet.create({
   container: { paddingTop: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   label: { ...typography.caption, color: colors.muted },
+  error: { ...typography.caption, color: colors.danger },
   list: { flex: 1, marginHorizontal: -spacing.sm },
   row: {
     flexDirection: 'row',

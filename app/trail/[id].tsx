@@ -24,7 +24,7 @@ import { typography } from '../../src/theme/typography';
 export default function TrailDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = trails.find((t) => t.id === id);
-  const { isSaved, toggleSaved, setActiveGroupId } = useAppState();
+  const { isSaved, toggleSaved } = useAppState();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -134,10 +134,7 @@ export default function TrailDetail() {
           <Button
             label="Start hike"
             icon="play"
-            onPress={() => {
-              setActiveGroupId('group-1');
-              router.replace('/(app)');
-            }}
+            onPress={() => router.push(`/group/create?trailId=${trail.id}`)}
           />
         </View>
       </View>

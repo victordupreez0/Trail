@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '../components/Avatar';
+import { CountUp } from '../components/CountUp';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -134,7 +135,11 @@ export function DashboardScreen() {
       {groupLoading ? (
         <Skeleton style={styles.hero} />
       ) : activeTrail && activeGroup ? (
-        <Pressable onPress={() => router.push(`/trail/${activeTrail.id}`)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${activeTrail.name}`}
+          onPress={() => router.push(`/trail/${activeTrail.id}`)}
+        >
           <View style={styles.hero}>
             <Image source={activeTrail.photo} style={StyleSheet.absoluteFill} resizeMode="cover" />
             <LinearGradient
@@ -199,7 +204,7 @@ export function DashboardScreen() {
           {groupLoading ? (
             <Skeleton style={styles.statSkeleton} />
           ) : (
-            <Text style={typography.title}>{activeGroup?.memberIds.length ?? 0}</Text>
+            <CountUp value={activeGroup?.memberIds.length ?? 0} style={typography.title} />
           )}
           <Text style={styles.statFoot}>with you today</Text>
         </Card>
@@ -212,9 +217,11 @@ export function DashboardScreen() {
           {groupLoading ? (
             <Skeleton style={styles.statSkeleton} />
           ) : (
-            <Text style={typography.title}>
-              {activeTrail ? (activeTrail.distanceM / 1000).toFixed(1) : '0.0'}
-            </Text>
+            <CountUp
+              value={activeTrail ? activeTrail.distanceM / 1000 : 0}
+              format={(n) => n.toFixed(1)}
+              style={typography.title}
+            />
           )}
           <Text style={styles.statFoot}>km today</Text>
         </Card>
@@ -232,7 +239,11 @@ export function DashboardScreen() {
             {userDocLoading ? (
               <Skeleton style={styles.statSkeleton} />
             ) : (
-              <Text style={typography.title}>{(waterMl / 1000).toFixed(1)} L</Text>
+              <CountUp
+                value={waterMl}
+                format={(n) => `${(n / 1000).toFixed(1)} L`}
+                style={typography.title}
+              />
             )}
             <View style={styles.track}>
               <View style={[styles.fill, { width: `${hydrationPct * 100}%` }]} />
@@ -307,12 +318,17 @@ export function DashboardScreen() {
       <View style={styles.statRowSecondary}>
         <Card style={styles.savedCard}>
           <Ionicons name="bookmark-outline" size={17} color={colors.primary} />
-          <Text style={typography.title}>{saved.length}</Text>
+          <CountUp value={saved.length} style={typography.title} />
           <Text style={styles.statFoot}>trails waiting for you</Text>
         </Card>
       </View>
 
-      <Pressable style={styles.safetyLink} onPress={() => router.push('/safety')}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Safety tips before you head out"
+        style={styles.safetyLink}
+        onPress={() => router.push('/safety')}
+      >
         <Ionicons name="shield-checkmark-outline" size={19} color={colors.primaryDark} />
         <Text style={styles.safetyText}>Safety tips before you head out</Text>
         <Ionicons name="chevron-forward" size={17} color={colors.muted} />

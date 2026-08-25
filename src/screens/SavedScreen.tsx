@@ -3,11 +3,14 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { TrailCard } from '../components/TrailCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import type { Trail } from '../data/trails';
 import { trails } from '../data/trails';
+import { useMotion } from '../hooks/useMotion';
+import { haptics } from '../lib/haptics';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
@@ -31,6 +34,7 @@ export function SavedScreen() {
   const saved = trails.filter((t) => savedTrailIds.includes(t.id) && t.id !== pending?.trailId);
 
   const requestRemove = (trail: Trail) => {
+    haptics.warning();
     if (pendingTimer.current) clearTimeout(pendingTimer.current);
     setPending({ trailId: trail.id, name: trail.name });
     pendingTimer.current = setTimeout(() => {
@@ -105,6 +109,7 @@ function SavedTrailRow({
   onRemove: () => void;
 }) {
   const { updateSavedTrailNote } = useAppState();
+  const { reduced } = useMotion();
   const [noteOpen, setNoteOpen] = useState(false);
   const [text, setText] = useState(note);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -131,63 +136,69 @@ function SavedTrailRow({
   };
 
   return (
-    <Swipeable
-      renderRightActions={() => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${trail.name} from saved`}
-          onPress={onRemove}
-          style={styles.swipeAction}
-        >
-          <Ionicons name="trash-outline" size={20} color={colors.surface} />
-        </Pressable>
-      )}
+    <Animated.View
+      entering={reduced ? undefined : FadeIn}
+      exiting={reduced ? undefined : FadeOut}
+      layout={reduced ? undefined : LinearTransition}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${trail.name}`}
-        onPress={() => router.push(`/trail/${trail.id}`)}
-        style={({ pressed }) => pressed && styles.pressed}
+      <Swipeable
+        renderRightActions={() => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${trail.name} from saved`}
+            onPress={onRemove}
+            style={styles.swipeAction}
+          >
+            <Ionicons name="trash-outline" size={20} color={colors.surface} />
+          </Pressable>
+        )}
       >
-        <TrailCard trail={trail} height={180} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={
-            noteOpen ? `Close note for ${trail.name}` : `Add a note for ${trail.name}`
-          }
-          hitSlop={10}
-          style={styles.noteToggle}
-          onPress={() => setNoteOpen((v) => !v)}
+          accessibilityLabel={`Open ${trail.name}`}
+          onPress={() => router.push(`/trail/${trail.id}`)}
+          style={({ pressed }) => pressed && styles.pressed}
         >
-          <Ionicons
-            name={text ? 'document-text' : 'create-outline'}
-            size={16}
-            color={colors.text}
-          />
+          <TrailCard trail={trail} height={180} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              noteOpen ? `Close note for ${trail.name}` : `Add a note for ${trail.name}`
+            }
+            hitSlop={10}
+            style={styles.noteToggle}
+            onPress={() => setNoteOpen((v) => !v)}
+          >
+            <Ionicons
+              name={text ? 'document-text' : 'create-outline'}
+              size={16}
+              color={colors.text}
+            />
+          </Pressable>
         </Pressable>
-      </Pressable>
 
-      {noteOpen ? (
-        <View style={styles.noteWrap}>
-          <TextInput
-            style={styles.noteInput}
-            placeholder="Add a note for this trail..."
-            placeholderTextColor={colors.muted}
-            value={text}
-            onChangeText={onChangeText}
-            multiline
-            accessibilityLabel={`Note for ${trail.name}`}
-          />
-          {saveState === 'saving' ? <Text style={styles.noteStatus}>Saving...</Text> : null}
-          {saveState === 'saved' ? <Text style={styles.noteStatus}>Saved</Text> : null}
-          {saveState === 'error' ? (
-            <Text style={[styles.noteStatus, styles.noteError]}>
-              Couldn&apos;t save. Try again.
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-    </Swipeable>
+        {noteOpen ? (
+          <View style={styles.noteWrap}>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Add a note for this trail..."
+              placeholderTextColor={colors.muted}
+              value={text}
+              onChangeText={onChangeText}
+              multiline
+              accessibilityLabel={`Note for ${trail.name}`}
+            />
+            {saveState === 'saving' ? <Text style={styles.noteStatus}>Saving...</Text> : null}
+            {saveState === 'saved' ? <Text style={styles.noteStatus}>Saved</Text> : null}
+            {saveState === 'error' ? (
+              <Text style={[styles.noteStatus, styles.noteError]}>
+                Couldn&apos;t save. Try again.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </Swipeable>
+    </Animated.View>
   );
 }
 

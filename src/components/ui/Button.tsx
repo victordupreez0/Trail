@@ -1,10 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
+import { useMotion } from '../../hooks/useMotion';
+import { haptics } from '../../lib/haptics';
 import { colors, shadow } from '../../theme/colors';
 import { radius, spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -40,27 +49,37 @@ export function Button({
   disabled = false,
 }: Props) {
   const inert = disabled || loading;
+  const { spring, reduced } = useMotion();
+  // 1 at rest, 0.97 pressed; opacity is derived from the same value rather than a
+  // second one, so the two never fall out of sync mid-spring.
+  const scale = useSharedValue(1);
 
   const handlePress = () => {
     // The concept leans on gestures; a small haptic keeps button taps feeling
     // like part of the same physical language.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptics.light();
     onPress();
   };
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: interpolate(scale.value, [0.97, 1], [0.82, 1]),
+  }));
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: inert, busy: loading }}
       onPress={handlePress}
+      onPressIn={() => {
+        scale.value = reduced ? 0.97 : withSpring(0.97, spring);
+      }}
+      onPressOut={() => {
+        scale.value = reduced ? 1 : withSpring(1, spring);
+      }}
       disabled={inert}
-      style={({ pressed }) => [
-        styles.base,
-        fill[variant],
-        pressed && styles.pressed,
-        inert && styles.inert,
-      ]}
+      style={[styles.base, fill[variant], inert && styles.inert, animatedStyle]}
     >
       {loading ? (
         <ActivityIndicator color={tint[variant]} />
@@ -70,7 +89,7 @@ export function Button({
           <Text style={[styles.label, { color: tint[variant] }]}>{label}</Text>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -84,6 +103,5 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   label: { ...typography.label, fontSize: 16 },
-  pressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
   inert: { opacity: 0.45 },
 });

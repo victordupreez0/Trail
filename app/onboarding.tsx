@@ -49,7 +49,12 @@ export default function Onboarding() {
           <Text style={styles.brandText}>Trail</Text>
         </View>
         {!isLast ? (
-          <Pressable onPress={finish} hitSlop={12} accessibilityRole="button">
+          <Pressable
+            onPress={finish}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Skip onboarding"
+          >
             <Text style={styles.skip}>Skip</Text>
           </Pressable>
         ) : null}

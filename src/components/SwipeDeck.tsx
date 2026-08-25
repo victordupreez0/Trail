@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -13,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { Trail } from '../data/trails';
+import { haptics } from '../lib/haptics';
 import { decideSwipe, SWIPE_THRESHOLD, type SwipeDecision } from '../lib/swipe';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
@@ -45,9 +45,8 @@ export function SwipeDeck({
     setIndex((i) => i + 1);
   };
 
-  const buzz = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-  };
+  // A save/skip is a committed decision, not a lightweight tap.
+  const buzz = () => haptics.medium();
 
   // Also driven by the buttons below, so the two paths can't drift apart.
   const fling = (decision: SwipeDecision) => {

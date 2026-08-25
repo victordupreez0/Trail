@@ -2,18 +2,43 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import MapView, { Polyline, type Region } from 'react-native-maps';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
+import { AnimatedMarker } from '../components/AnimatedMarker';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { trails } from '../data/trails';
 import { useLiveLocation } from '../hooks/useLiveLocation';
-import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
+import { useMotion } from '../hooks/useMotion';
+import { haptics } from '../lib/haptics';
+import {
+  breadcrumbSegments,
+  hexWithAlpha,
+  initialsOf,
+  lastSeenLabel,
+  memberColor,
+} from '../lib/party';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+
+type Coordinate = { latitude: number; longitude: number };
+
+// A breadcrumb window per member, kept client-side only (not persisted). 12
+// positions at the ~5-10s cadence positions actually arrive at is a couple of
+// minutes of trail, which is plenty to read as "recently came from over there"
+// without the map turning into a scribble.
+const BREADCRUMB_LENGTH = 12;
 
 // Re-evaluated on a slow tick rather than only on new snapshots, otherwise a member
 // who stops sending updates never gets picked up as stale on an otherwise-idle screen.
@@ -29,7 +54,9 @@ export function GroupsScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
+  const [breadcrumbs, setBreadcrumbs] = useState<Record<string, Coordinate[]>>({});
   const mapRef = useRef<MapView>(null);
+  const { reduced } = useMotion();
 
   const status = useLiveLocation(
     activeGroup?.id ?? null,
@@ -41,6 +68,29 @@ export function GroupsScreen() {
     const id = setInterval(() => setNow(Date.now()), STALE_CHECK_INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
+
+  // Firestore only ever gives us the latest position per member, so a trail behind
+  // them has to be accumulated client-side; not persisted, lost on remount, which is
+  // fine for a "where they've recently been" cue rather than a real track log.
+  useEffect(() => {
+    setBreadcrumbs((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [uid, pos] of Object.entries(partyPositions)) {
+        const list = next[uid] ?? [];
+        const last = list[list.length - 1];
+        if (
+          !last ||
+          last.latitude !== pos.position.latitude ||
+          last.longitude !== pos.position.longitude
+        ) {
+          next[uid] = [...list, pos.position].slice(-BREADCRUMB_LENGTH);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [partyPositions]);
 
   if (groupLoading) return null;
 
@@ -99,6 +149,7 @@ export function GroupsScreen() {
     setEnding(true);
     try {
       await endHike();
+      haptics.success();
     } catch (err) {
       setEndError(err instanceof Error ? err.message : 'Could not end the hike.');
     } finally {
@@ -134,18 +185,33 @@ export function GroupsScreen() {
             />
             {members
               .filter((m) => m.pos)
+              .flatMap((m) =>
+                breadcrumbSegments(breadcrumbs[m.uid] ?? [], 3).map((segment, i, all) => (
+                  <Polyline
+                    key={`${m.uid}-crumb-${i}`}
+                    coordinates={segment}
+                    strokeColor={hexWithAlpha(
+                      m.color,
+                      0.15 + (i / Math.max(1, all.length - 1)) * 0.45,
+                    )}
+                    strokeWidth={3}
+                    lineCap="round"
+                  />
+                )),
+              )}
+            {members
+              .filter((m) => m.pos)
               .map((m) => (
-                <Marker
+                <AnimatedMarker
                   key={m.uid}
                   coordinate={m.pos!.position}
                   title={m.name}
                   description={`Battery ${Math.round(m.pos!.batteryLevel * 100)}%`}
-                  tracksViewChanges={false}
                 >
                   <View style={[styles.pin, m.stale && styles.pinStale]}>
                     <Avatar initials={m.initials} color={m.color} size={34} />
                   </View>
-                </Marker>
+                </AnimatedMarker>
               ))}
           </MapView>
 
@@ -171,12 +237,7 @@ export function GroupsScreen() {
               {trail.name} · code {activeGroup.inviteCode}
             </Text>
           </View>
-          {status === 'tracking' ? (
-            <View style={styles.live}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>Live</Text>
-            </View>
-          ) : null}
+          {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
         </View>
 
         {status === 'denied' ? (
@@ -222,6 +283,38 @@ export function GroupsScreen() {
           />
         ) : null}
       </View>
+    </View>
+  );
+}
+
+// A slow breathing pulse rather than a static dot, so "Live" reads as an ongoing
+// connection rather than a fixed label. Timed at a comfortable resting-breath 2s,
+// not literally synced to the 30s write heartbeat (that would look broken for 28
+// seconds out of every 30).
+function LivePill({ reduced }: { reduced: boolean }) {
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    if (reduced) {
+      pulse.value = 1;
+      return;
+    }
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(0.4, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, [reduced, pulse]);
+
+  const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+
+  return (
+    <View style={styles.live}>
+      <Animated.View style={[styles.liveDot, dotStyle]} />
+      <Text style={styles.liveText}>Live</Text>
     </View>
   );
 }

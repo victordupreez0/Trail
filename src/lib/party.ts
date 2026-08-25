@@ -17,6 +17,29 @@ export function initialsOf(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
 }
 
+export function hexWithAlpha(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Splits a breadcrumb trail into a handful of overlapping segments (sharing one
+// point at each boundary, so the segments still connect visually) for a fading
+// multi-Polyline trail. react-native-maps' Polyline has no per-vertex gradient, so
+// this is the coarse-grained way to fake one.
+export function breadcrumbSegments<T>(points: T[], segmentCount = 3): T[][] {
+  if (points.length < 2) return [];
+  const chunkSize = Math.max(2, Math.ceil(points.length / segmentCount));
+  const segments: T[][] = [];
+  for (let i = 0; i + 1 < points.length; i += chunkSize - 1) {
+    const chunk = points.slice(i, i + chunkSize);
+    if (chunk.length >= 2) segments.push(chunk);
+  }
+  return segments;
+}
+
 // The one throttle rule shared by useLiveLocation's watcher (10s) and its heartbeat
 // (30s): a null lastWriteMs means nothing has been written yet, so it's always due.
 export function dueForWrite(lastWriteMs: number | null, nowMs: number, minGapMs: number): boolean {

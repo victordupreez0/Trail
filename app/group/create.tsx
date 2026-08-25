@@ -7,6 +7,7 @@ import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { trails } from '../../src/data/trails';
+import { haptics } from '../../src/lib/haptics';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -30,6 +31,7 @@ export default function CreateGroup() {
     setCreating(true);
     try {
       await createGroup(name.trim(), trailId);
+      haptics.medium();
       router.replace('/(app)?tab=groups');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the hike.');

@@ -1,4 +1,11 @@
-import { dueForWrite, initialsOf, lastSeenLabel, memberColor } from '../src/lib/party';
+import {
+  breadcrumbSegments,
+  dueForWrite,
+  hexWithAlpha,
+  initialsOf,
+  lastSeenLabel,
+  memberColor,
+} from '../src/lib/party';
 
 test('a null last write is always due', () => {
   expect(dueForWrite(null, Date.now(), 10_000)).toBe(true);
@@ -37,4 +44,22 @@ test('a uid maps to the same colour every time', () => {
 test('initials are capped at two characters and uppercased', () => {
   expect(initialsOf('nadia')).toBe('NA');
   expect(initialsOf('  Sam  ')).toBe('SA');
+});
+
+test('hexWithAlpha converts a hex colour to an rgba string', () => {
+  expect(hexWithAlpha('#2F6B4F', 0.5)).toBe('rgba(47, 107, 79, 0.5)');
+});
+
+test('fewer than two points produces no breadcrumb segments', () => {
+  expect(breadcrumbSegments([])).toEqual([]);
+  expect(breadcrumbSegments([{ x: 1 }])).toEqual([]);
+});
+
+test('breadcrumb segments overlap at their boundaries so they stay connected', () => {
+  const points = [0, 1, 2, 3, 4, 5, 6].map((n) => ({ n }));
+  const segments = breadcrumbSegments(points, 3);
+  expect(segments.length).toBeGreaterThan(1);
+  for (let i = 1; i < segments.length; i++) {
+    expect(segments[i][0]).toEqual(segments[i - 1][segments[i - 1].length - 1]);
+  }
 });

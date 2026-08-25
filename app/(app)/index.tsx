@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { haptics } from '../../src/lib/haptics';
 import { DashboardScreen } from '../../src/screens/DashboardScreen';
 import { DiscoverScreen } from '../../src/screens/DiscoverScreen';
 import { GroupsScreen } from '../../src/screens/GroupsScreen';
@@ -40,7 +40,7 @@ export default function AppPager() {
   const [page, setPage] = useState(initialPage);
 
   const goTo = (i: number) => {
-    if (i !== page) Haptics.selectionAsync().catch(() => {});
+    if (i !== page) haptics.selection();
     pagerRef.current?.setPage(i);
   };
 

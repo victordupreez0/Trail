@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { haptics } from '../../src/lib/haptics';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -26,6 +27,7 @@ export default function JoinGroup() {
     setJoining(true);
     try {
       await joinByCode(code.trim());
+      haptics.medium();
       router.replace('/(app)?tab=groups');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not join that hike.');

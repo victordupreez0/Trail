@@ -14,6 +14,10 @@ export type UserDoc = {
   // original README schema; added here because the brief needs a real counter, and
   // the user doc is the natural home for it (same read/write audience as the goal).
   waterMl: number;
+  // The local date (YYYY-MM-DD, see src/lib/hydration.ts) waterMl was last logged on.
+  // waterMl itself is a Firestore increment, so nothing resets it server-side; a
+  // stale date is how a new day reads the total back as zero.
+  waterDate: string | null;
   // Local-notification settings. Also not in the original schema; same reasoning.
   remindersEnabled: boolean;
   waterIntervalMin: number;

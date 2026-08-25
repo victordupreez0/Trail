@@ -19,6 +19,7 @@ import {
   unsaveTrail,
   updateSavedTrailNote as updateSavedTrailNoteDoc,
 } from '../lib/savedTrails';
+import { todayKey } from '../lib/hydration';
 import {
   ensureUserDoc,
   logWater as logWaterDoc,
@@ -240,7 +241,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       userDocLoading,
       logWater: async (ml) => {
         if (!user) return;
-        await logWaterDoc(user.uid, ml);
+        const sameDay = userDoc?.waterDate === todayKey();
+        await logWaterDoc(user.uid, ml, sameDay);
       },
       setHydrationGoal: async (ml) => {
         if (!user) return;

@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from './firebase';
+import { todayKey } from './hydration';
 import type { UserDoc } from '../types/models';
 
 const DEFAULT_HYDRATION_GOAL_ML = 2000;
@@ -33,6 +34,7 @@ export async function ensureUserDoc(
     photoURL: null,
     hydrationGoalMl: DEFAULT_HYDRATION_GOAL_ML,
     waterMl: 0,
+    waterDate: todayKey(),
     remindersEnabled: true,
     waterIntervalMin: DEFAULT_WATER_INTERVAL_MIN,
     restIntervalMin: DEFAULT_REST_INTERVAL_MIN,
@@ -50,9 +52,15 @@ export function subscribeToUserDoc(uid: string, cb: (doc: UserDoc | null) => voi
 }
 
 // A Firestore increment rather than a read-modify-write, so rapid taps on the
-// dashboard's log-water control can't race each other and drop a count.
-export async function logWater(uid: string, ml: number): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), { waterMl: increment(ml) });
+// dashboard's log-water control can't race each other and drop a count. sameDay
+// comes from the caller (AppState knows the live userDoc), because a plain
+// increment can never notice a day has rolled over on its own; a rollover instead
+// gets a fresh total and today's date.
+export async function logWater(uid: string, ml: number, sameDay: boolean): Promise<void> {
+  await updateDoc(
+    doc(db, 'users', uid),
+    sameDay ? { waterMl: increment(ml) } : { waterMl: ml, waterDate: todayKey() },
+  );
 }
 
 export async function setHydrationGoal(uid: string, ml: number): Promise<void> {

@@ -136,7 +136,7 @@ Every collection below is live and wired to the UI.
 
 ```
 users/{uid}
-  displayName, email, photoURL, hydrationGoalMl, waterMl,
+  displayName, email, photoURL, hydrationGoalMl, waterMl, waterDate,
   remindersEnabled, waterIntervalMin, restIntervalMin, activeGroupId, createdAt
 
 users/{uid}/savedTrails/{trailId}

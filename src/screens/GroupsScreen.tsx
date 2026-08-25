@@ -16,6 +16,7 @@ import { AnimatedMarker } from '../components/AnimatedMarker';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Skeleton } from '../components/ui/Skeleton';
 import { trails } from '../data/trails';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useMotion } from '../hooks/useMotion';
@@ -92,7 +93,13 @@ export function GroupsScreen() {
     });
   }, [partyPositions]);
 
-  if (groupLoading) return null;
+  if (groupLoading) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Skeleton style={styles.loadingSkeleton} />
+      </View>
+    );
+  }
 
   const trail = activeGroup ? trails.find((t) => t.id === activeGroup.trailId) : undefined;
 
@@ -389,5 +396,6 @@ const styles = StyleSheet.create({
   memberMeta: { ...typography.caption, color: colors.muted, fontSize: 11 },
   error: { ...typography.caption, color: colors.danger },
   emptyContainer: { flex: 1, justifyContent: 'center', gap: spacing.lg },
+  loadingSkeleton: { height: 240, borderRadius: radius.xl },
   emptyActions: { gap: spacing.sm },
 });

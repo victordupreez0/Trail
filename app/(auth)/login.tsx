@@ -14,7 +14,7 @@ import {
 import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { authMessage } from '../../src/lib/auth';
+import { authMessage, resetPassword } from '../../src/lib/auth';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -26,6 +26,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const submit = async () => {
     if (!email.trim() || password.length < 6) {
@@ -41,6 +43,22 @@ export default function Login() {
       setError(authMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const forgotPassword = async () => {
+    if (!email.trim()) {
+      setResetError('Enter your email above first.');
+      return;
+    }
+    setResetError(null);
+    setResetState('sending');
+    try {
+      await resetPassword(email.trim());
+      setResetState('sent');
+    } catch (err) {
+      setResetState('idle');
+      setResetError(authMessage(err));
     }
   };
 
@@ -83,9 +101,28 @@ export default function Login() {
               value={password}
               onChangeText={setPassword}
             />
-            <Pressable style={styles.forgot} hitSlop={8}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Send a password reset email"
+              style={styles.forgot}
+              hitSlop={8}
+              onPress={forgotPassword}
+              disabled={resetState === 'sending'}
+            >
+              <Text style={styles.forgotText}>
+                {resetState === 'sending'
+                  ? 'Sending...'
+                  : resetState === 'sent'
+                    ? 'Reset link sent'
+                    : 'Forgot password?'}
+              </Text>
             </Pressable>
+            {resetError ? <Text style={styles.error}>{resetError}</Text> : null}
+            {resetState === 'sent' ? (
+              <Text style={styles.resetSent}>
+                Check {email.trim()} for a link to reset your password.
+              </Text>
+            ) : null}
           </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -126,6 +163,7 @@ const styles = StyleSheet.create({
   error: { ...typography.caption, color: colors.danger },
   forgot: { alignSelf: 'flex-end' },
   forgotText: { ...typography.caption, color: colors.primary },
+  resetSent: { ...typography.caption, color: colors.muted, textAlign: 'right' },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: 5, alignItems: 'center' },
   footerText: { ...typography.caption, color: colors.muted },
   link: { ...typography.caption, color: colors.primary, fontWeight: '700' },

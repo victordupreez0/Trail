@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanim
 
 import { TrailCard } from '../components/TrailCard';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
 import { trails } from '../data/trails';
 import { useMotion } from '../hooks/useMotion';
@@ -20,7 +21,7 @@ const NOTE_DEBOUNCE_MS = 600;
 const UNDO_WINDOW_MS = 4000;
 
 export function SavedScreen() {
-  const { savedTrailIds, savedTrailMeta, toggleSaved } = useAppState();
+  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved } = useAppState();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,6 +48,19 @@ export function SavedScreen() {
     if (pendingTimer.current) clearTimeout(pendingTimer.current);
     setPending(null);
   };
+
+  if (savedTrailsLoading) {
+    return (
+      <View style={[styles.root, styles.container]}>
+        <View style={styles.header}>
+          <Text style={typography.display}>Saved</Text>
+        </View>
+        <Skeleton style={styles.loadingCard} />
+        <View style={styles.gap} />
+        <Skeleton style={styles.loadingCard} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -208,6 +222,7 @@ const styles = StyleSheet.create({
   header: { gap: 2, marginBottom: spacing.md },
   sub: { ...typography.caption, color: colors.muted },
   gap: { height: spacing.md },
+  loadingCard: { height: 180, borderRadius: radius.xl },
   pressed: { opacity: 0.9 },
   noteToggle: {
     position: 'absolute',

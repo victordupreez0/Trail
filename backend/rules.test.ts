@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -134,6 +134,32 @@ test('a user can read and write their own profile', async () => {
 test("a user cannot read someone else's profile", async () => {
   const bob = testEnv.authenticatedContext(MEMBER_B).firestore();
   await assertFails(getDoc(doc(bob, 'users', MEMBER_A)));
+});
+
+test("a user cannot write someone else's profile", async () => {
+  const bob = testEnv.authenticatedContext(MEMBER_B).firestore();
+  await assertFails(setDoc(doc(bob, 'users', MEMBER_A), { displayName: 'Not Alice' }));
+});
+
+// P4/P5/P6 all write new fields (waterMl, reminder settings, photoURL) onto the
+// existing users/{uid} doc rather than a new collection, so what actually needs
+// proving is that the generic isSelf() rule still holds for an update - not just
+// the setDoc already covered above - and for a Firestore increment specifically,
+// since that's the exact write shape logWater uses.
+test('a user can increment their own waterMl', async () => {
+  const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'users', MEMBER_A), { waterMl: 0 });
+  });
+  await assertSucceeds(updateDoc(doc(alice, 'users', MEMBER_A), { waterMl: increment(250) }));
+});
+
+test("a user cannot increment someone else's waterMl", async () => {
+  const bob = testEnv.authenticatedContext(MEMBER_B).firestore();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'users', MEMBER_A), { waterMl: 0 });
+  });
+  await assertFails(updateDoc(doc(bob, 'users', MEMBER_A), { waterMl: increment(250) }));
 });
 
 test('a signed-in user can read the trail catalog', async () => {

@@ -18,7 +18,6 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { trails } from '../data/trails';
-import { currentUser } from '../data/user';
 import { removeAvatar, uploadAvatar } from '../lib/profile';
 import { requestPermission } from '../lib/reminders';
 import { useAppState } from '../state/AppState';
@@ -28,6 +27,9 @@ import { typography } from '../theme/typography';
 
 const WATER_INTERVAL_OPTIONS = [20, 30, 45, 60];
 const REST_INTERVAL_OPTIONS = [60, 90, 120];
+// Matches ensureUserDoc's own default (src/lib/userDoc.ts); only used for the
+// instant between sign-in and the user doc's first snapshot arriving.
+const DEFAULT_HYDRATION_GOAL_ML = 2000;
 
 export function ProfileScreen() {
   const { user, logout, savedTrailIds, userDoc, setReminderSettings } = useAppState();
@@ -38,15 +40,15 @@ export function ProfileScreen() {
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
   const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
-  const hydrationGoalMl = userDoc?.hydrationGoalMl ?? currentUser.hydrationGoalMl;
+  const hydrationGoalMl = userDoc?.hydrationGoalMl ?? DEFAULT_HYDRATION_GOAL_ML;
   const remindersEnabled = userDoc?.remindersEnabled ?? true;
   const waterIntervalMin = userDoc?.waterIntervalMin ?? 30;
   const restIntervalMin = userDoc?.restIntervalMin ?? 90;
   const photoURL = userDoc?.photoURL ?? user?.photoURL ?? null;
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || currentUser.displayName;
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Hiker';
   const initials = displayName.slice(0, 2).toUpperCase();
-  const email = user?.email ?? currentUser.email;
+  const email = user?.email ?? '';
 
   const handleLogout = () => {
     // No navigation here: app/index.tsx redirects once Firebase's auth state changes.

@@ -45,6 +45,7 @@ type AppStateValue = {
   logout: () => Promise<void>;
   savedTrailIds: string[];
   savedTrailMeta: Record<string, SavedTrail>;
+  savedTrailsLoading: boolean;
   isSaved: (trailId: string) => boolean;
   toggleSaved: (trailId: string) => void;
   updateSavedTrailNote: (trailId: string, note: string) => Promise<void>;
@@ -72,6 +73,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
   const [savedTrailMeta, setSavedTrailMeta] = useState<Record<string, SavedTrail>>({});
+  const [savedTrailsLoading, setSavedTrailsLoading] = useState(false);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [userDocLoading, setUserDocLoading] = useState(false);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
@@ -103,13 +105,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Live-syncs saved trails to Firestore. Cleared on sign-out so switching accounts
-  // can't leak one user's saves into another's.
+  // can't leak one user's saves into another's. savedTrailsLoading exists so
+  // SavedScreen's empty state doesn't flash before the first snapshot arrives -
+  // savedTrailIds starts at [] regardless of whether anything is actually saved.
   useEffect(() => {
     if (!user) {
       setSavedTrailIds([]);
       setSavedTrailMeta({});
+      setSavedTrailsLoading(false);
       return;
     }
+    setSavedTrailsLoading(true);
     const ref = collection(db, 'users', user.uid, 'savedTrails');
     return onSnapshot(
       ref,
@@ -121,8 +127,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           meta[d.id] = { savedAt: data.savedAt ?? null, notes: data.notes ?? '' };
         }
         setSavedTrailMeta(meta);
+        setSavedTrailsLoading(false);
       },
-      (err) => console.warn('savedTrails listener failed', err),
+      (err) => {
+        console.warn('savedTrails listener failed', err);
+        setSavedTrailsLoading(false);
+      },
     );
   }, [user]);
 
@@ -211,6 +221,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       logout: () => signOutNow(),
       savedTrailIds,
       savedTrailMeta,
+      savedTrailsLoading,
       isSaved: (trailId) => savedTrailIds.includes(trailId),
       toggleSaved: (trailId) => {
         if (!user) return;
@@ -267,6 +278,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       user,
       savedTrailIds,
       savedTrailMeta,
+      savedTrailsLoading,
       userDoc,
       userDocLoading,
       activeGroup,

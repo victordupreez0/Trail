@@ -48,8 +48,8 @@ Scan the QR code with the Expo Go app on your phone (same WiFi as your computer)
 networks that block phone-to-laptop traffic (most campus WiFi), use
 `npm run start:tunnel` instead.
 
-Auth and saved trails need a Firebase project. Create a `.env` file at the repo root
-with:
+Auth, Firestore, and Storage all need a real Firebase project. Create a `.env` file at
+the repo root with:
 
 ```
 EXPO_PUBLIC_FIREBASE_API_KEY=
@@ -94,14 +94,14 @@ Twelve screens, all navigable:
 | Route                   | Screen       | What it does today                                                   |
 | ----------------------- | ------------ | -------------------------------------------------------------------- |
 | `app/onboarding.tsx`    | Onboarding   | Three-slide intro to the concept                                     |
-| `app/(auth)/login.tsx`  | Login        | Real Firebase email/password sign-in, with error messages            |
+| `app/(auth)/login.tsx`  | Login        | Real Firebase sign-in, error messages, password reset                |
 | `app/(auth)/signup.tsx` | Sign up      | Real Firebase account creation, sets your display name               |
 | `app/(app)/index.tsx`   | App shell    | Horizontal pager across the five screens below, plus a tab bar       |
-| ...Today                | Dashboard    | Active hike card, party size, water and trail stats                  |
+| ...Today                | Dashboard    | Real party, hydration, and alerts, driven by live Firestore data     |
 | ...Discover             | Swipe deck   | Swipe up/down through the 24-trail catalog, tap for more detail      |
-| ...Saved                | Saved trails | Firestore-backed, syncs live, survives closing the app               |
-| ...Party                | Groups       | Active group, member list, map with static positions along the trail |
-| ...You                  | Profile      | Your info, settings                                                  |
+| ...Saved                | Saved trails | Notes, swipe-to-remove with undo, syncs live, survives closing       |
+| ...Party                | Groups       | Live party map, animated markers, breadcrumb trails, stale check-ins |
+| ...You                  | Profile      | Real hydration goal, reminders, profile photo upload                 |
 | `app/trail/[id].tsx`    | Trail detail | Full trail info, map with the route drawn, save toggle               |
 | `app/group/create.tsx`  | Create group | Form, modal presentation                                             |
 | `app/group/join.tsx`    | Join group   | Invite-code form, modal presentation                                 |
@@ -123,20 +123,21 @@ Twelve screens, all navigable:
 - **gesture-handler + reanimated** power the swipe deck (`src/components/SwipeDeck.tsx`)
   and are how the gesture-first idea and the animation requirement both get covered by
   the same feature.
-- **Firebase**, because the brief requires it. Auth and saved trails are wired up for
-  real (`src/lib/auth.ts`, `src/state/AppState.tsx`); the rest of the app still runs on
-  the static data in `src/data/`, see the table below for exactly what's real.
+- **Firebase**, because the brief requires it: Auth, Firestore, and Storage are all
+  wired up for real (`src/lib/`, `src/state/AppState.tsx`). Only the trail catalog
+  itself (`src/data/trails.ts`) stays static, on purpose - it's a curated, deliberately
+  fixed dataset, not a stand-in for something that was meant to be live.
 - **React Context, no Redux.** State is small enough right now (a user, some saved
   trail ids, an active group) that a reducer library would just be overhead.
 
 ## Data model (Firestore)
 
-`users/{uid}/savedTrails` is the one collection actually wired to the UI right now. The
-rest is designed and covered by rules tests, but nothing in the app writes to it yet.
+Every collection below is live and wired to the UI.
 
 ```
 users/{uid}
-  displayName, email, photoURL, hydrationGoalMl, activeGroupId, createdAt
+  displayName, email, photoURL, hydrationGoalMl, waterMl,
+  remindersEnabled, waterIntervalMin, restIntervalMin, activeGroupId, createdAt
 
 users/{uid}/savedTrails/{trailId}
   savedAt, notes
@@ -189,31 +190,57 @@ matching `{uid}` can write its own, capped at 5MB and image content types only.
 
 ## What's actually working vs mocked
 
-I'd rather be upfront about this than dress it up. Two things are wired to real
-Firebase right now, auth and saved trails; everything else in the app still runs on the
-static data in `src/data/`.
+I'd rather be upfront about this than dress it up.
 
-| Working                                            | Static for now                        | Not built yet                      |
-| -------------------------------------------------- | ------------------------------------- | ---------------------------------- |
-| Navigation across all 12 screens                   | Group membership and party positions  | Live position sharing (10s target) |
-| Firebase email/password auth, session persists     | Water/hydration stat on the dashboard | Background location tracking       |
-| Saved trails, real Firestore CRUD, survives reload |                                       | Local hydration/rest reminders     |
-| Swipe-to-save/skip gesture (has a unit test)       |                                       |                                    |
-| Trail search, maps, drawn routes                   |                                       |                                    |
-| Firestore security rules (tested in CI)            |                                       |                                    |
+**Working, end to end, against real Firebase:**
+
+- Navigation across all 12 screens
+- Email/password auth, session persistence, password reset
+- Saved trails: real Firestore CRUD, per-trail notes, swipe-to-remove with a 4s undo
+- Groups: create/join by invite code, real-time party positions, animated markers,
+  fading breadcrumb trails, stale check-in handling
+- Dashboard: real hydration counter, real party stats, alerts (stale check-in, low
+  battery, hydration behind pace)
+- Local hydration/rest reminders while a hike is active
+- Firebase Storage profile photo upload
+- A ghost-hiker simulator, since one physical phone can't demo a shared party map
+- Firestore security rules, tested in CI (`backend/rules.test.ts`)
+- Swipe-to-save/skip gesture (has a unit test)
+- Trail search, maps, drawn routes
+
+**Deliberate simplifications, not bugs:**
+
+- Dashboard "Recent activity" shows trail saves and hike starts only. There's no
+  per-member join timestamp anywhere in the schema, so "X joined" from the original
+  brief is left out rather than faked.
+- The dashboard's distance stat is the active trail's own distance, not a cumulative
+  hiked total.
+- Only the hike owner can end a hike. The rules' `joiningSelf()` only ever adds the
+  caller's own uid to `memberIds`, never removes it, so there's no "leave" path to
+  offer either.
+
+**Not built:**
+
+- Background location tracking. Expo Go cannot run `expo-task-manager`; foreground-only
+  is a deliberate constraint, not an oversight.
+- The real app icon and splash art. That's a generated-asset task, not a code one.
+- A device pass for contrast, largest-font-size layout, and offline behaviour (airplane
+  mode mid-hike) - all three need a physical phone to actually verify.
+- `backend/storage.rules` can't be checked against the Firestore emulator the way
+  `backend/firestore.rules` can (different product); it's traced by hand instead.
 
 ## Where this is headed
 
-Roughly the plan I pitched at the start, five slices:
+Roughly the plan I pitched at the start, five slices, all now built out:
 
-| Slice | Scope                                                           | Where it's at                                       |
-| ----- | --------------------------------------------------------------- | --------------------------------------------------- |
-| 0     | Repo setup, CI, Firestore rules + tests, design tokens          | Done                                                |
-| 1     | Firebase Auth, onboarding, session persistence                  | Done                                                |
-| 2     | Trail seed, swipe discovery, saved-trails CRUD                  | Done                                                |
-| 3     | Groups, background tracking, live party map                     | UI's there, live tracking and sync are next         |
-| 4     | Calm dashboard, hydration/rest notifications, animation polish  | Dashboard UI's there, notifications are next        |
-| 5     | Safety content, real app icon, accessibility pass, a demo video | Safety screen and icons are there, the rest is next |
+| Slice | Scope                                                           | Where it's at                                                |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| 0     | Repo setup, CI, Firestore rules + tests, design tokens          | Done                                                         |
+| 1     | Firebase Auth, onboarding, session persistence                  | Done                                                         |
+| 2     | Trail seed, swipe discovery, saved-trails CRUD                  | Done                                                         |
+| 3     | Groups, live location, live party map                           | Done - foreground tracking, animated markers, breadcrumbs    |
+| 4     | Calm dashboard, hydration/rest notifications, animation polish  | Done                                                         |
+| 5     | Safety content, real app icon, accessibility pass, a demo video | Safety screen is done; icon, video, and a device pass remain |
 
 ## Conventions
 

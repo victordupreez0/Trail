@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -21,4 +22,8 @@ export async function signUp(name: string, email: string, password: string) {
 
 export function signOutNow() {
   return signOut(auth);
+}
+
+export function resetPassword(email: string) {
+  return sendPasswordResetEmail(auth, email);
 }

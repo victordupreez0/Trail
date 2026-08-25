@@ -9,6 +9,8 @@
  * Idempotent: each trail has a fixed doc ID, so re-running overwrites rather than
  * duplicating. Run with `npm run seed`.
  */
+import './nodeAssetStub';
+
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 

@@ -71,6 +71,17 @@ Other useful commands: `npm run typecheck`, `npm run lint`, `npm test`, and
 `npm run seed` to push the trail catalog into Firestore (uses the Admin SDK, needs
 `GOOGLE_APPLICATION_CREDENTIALS` pointed at a service account key).
 
+### Testing the live map
+
+The live map needs a second moving hiker to actually demonstrate, and this project has
+one physical phone. `npm run simulate -- --group=<groupId> --members=2 --trail=lions-head`
+uses the Admin SDK to make one or two fake party members walk the trail's route,
+writing real `groups/{id}/positions/{uid}` documents every 5 seconds, so the map,
+staleness handling, and battery/check-in alerts all have something real driving them.
+It is a test harness, not a hidden feature: it needs the same credentials as
+`npm run seed`, adds the simulated members to the group's `memberIds` for the duration,
+and removes them again (and deletes their position docs) on Ctrl+C.
+
 ## Screens
 
 Twelve screens, all navigable:

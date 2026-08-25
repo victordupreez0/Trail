@@ -102,7 +102,7 @@ export function GroupsScreen() {
 
   if (groupLoading) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { paddingBottom: tabBarInset }]}>
         <Skeleton style={styles.loadingSkeleton} />
       </View>
     );
@@ -112,7 +112,7 @@ export function GroupsScreen() {
 
   if (!activeGroup || !trail) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { paddingBottom: tabBarInset }]}>
         <EmptyState
           title="No active hike"
           body="Start a group to share your live location with your party."
@@ -180,138 +180,143 @@ export function GroupsScreen() {
   };
 
   return (
-    <View
-      style={styles.container}
-      onLayout={(e) => {
-        const { width, height } = e.nativeEvent.layout;
-        setBox((prev) =>
-          prev.width === width && prev.height === height ? prev : { width, height },
-        );
-      }}
-    >
-      {box.height > 0 ? (
-        <View style={[styles.mapWrap, { width: box.width, height: mapHeight }]}>
-          <MapView
-            ref={mapRef}
-            style={{ width: box.width, height: mapHeight }}
-            initialRegion={region}
-            showsPointsOfInterest={false}
-            showsCompass={false}
-            toolbarEnabled={false}
-          >
-            <Polyline
-              coordinates={trail.path}
-              strokeColor={colors.primary}
-              strokeWidth={5}
-              lineCap="round"
-            />
-            {members
-              .filter((m) => m.pos)
-              .flatMap((m) =>
-                breadcrumbSegments(breadcrumbs[m.uid] ?? [], 3).map((segment, i, all) => (
-                  <Polyline
-                    key={`${m.uid}-crumb-${i}`}
-                    coordinates={segment}
-                    strokeColor={hexWithAlpha(
-                      m.color,
-                      0.15 + (i / Math.max(1, all.length - 1)) * 0.45,
-                    )}
-                    strokeWidth={3}
-                    lineCap="round"
-                  />
-                )),
-              )}
-            {members
-              .filter((m) => m.pos)
-              .map((m) => (
-                <AnimatedMarker
-                  key={m.uid}
-                  coordinate={m.pos!.position}
-                  title={m.name}
-                  description={`Battery ${Math.round(m.pos!.batteryLevel * 100)}%`}
-                >
-                  <View style={[styles.pin, m.stale && styles.pinStale]}>
-                    <Avatar initials={m.initials} color={m.color} size={34} />
-                  </View>
-                </AnimatedMarker>
-              ))}
-          </MapView>
+    // Reserves the floating tab bar's space here, above the measured box, instead of
+    // inside it - box/onLayout/mapHeight below are untouched (CLAUDE.md), so this is
+    // the only place left to restore the pre-tab-bar available height exactly.
+    <View style={{ flex: 1, paddingBottom: tabBarInset }}>
+      <View
+        style={styles.container}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setBox((prev) =>
+            prev.width === width && prev.height === height ? prev : { width, height },
+          );
+        }}
+      >
+        {box.height > 0 ? (
+          <View style={[styles.mapWrap, { width: box.width, height: mapHeight }]}>
+            <MapView
+              ref={mapRef}
+              style={{ width: box.width, height: mapHeight }}
+              initialRegion={region}
+              showsPointsOfInterest={false}
+              showsCompass={false}
+              toolbarEnabled={false}
+            >
+              <Polyline
+                coordinates={trail.path}
+                strokeColor={colors.primary}
+                strokeWidth={5}
+                lineCap="round"
+              />
+              {members
+                .filter((m) => m.pos)
+                .flatMap((m) =>
+                  breadcrumbSegments(breadcrumbs[m.uid] ?? [], 3).map((segment, i, all) => (
+                    <Polyline
+                      key={`${m.uid}-crumb-${i}`}
+                      coordinates={segment}
+                      strokeColor={hexWithAlpha(
+                        m.color,
+                        0.15 + (i / Math.max(1, all.length - 1)) * 0.45,
+                      )}
+                      strokeWidth={3}
+                      lineCap="round"
+                    />
+                  )),
+                )}
+              {members
+                .filter((m) => m.pos)
+                .map((m) => (
+                  <AnimatedMarker
+                    key={m.uid}
+                    coordinate={m.pos!.position}
+                    title={m.name}
+                    description={`Battery ${Math.round(m.pos!.batteryLevel * 100)}%`}
+                  >
+                    <View style={[styles.pin, m.stale && styles.pinStale]}>
+                      <Avatar initials={m.initials} color={m.color} size={34} />
+                    </View>
+                  </AnimatedMarker>
+                ))}
+            </MapView>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Recentre map on the trail"
-            style={styles.recentreWrap}
-            onPress={() => mapRef.current?.animateToRegion(region, 500)}
-          >
-            <GlassSurface style={styles.recentre}>
-              <Ionicons name="locate" size={20} color={colors.text} />
-            </GlassSurface>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {/* Only overlaps the map by radius.xl (the negative marginTop below), so the
-          blur reads as a frosted lip along the top edge rather than the whole sheet -
-          the sheet itself sits over the screen background beneath that. Swap to
-          solid if this stutters against a moving map on a mid-range device; see
-          BUILD-PLAN.md's S2 performance note. */}
-      <GlassSurface style={[styles.sheet, { paddingBottom: spacing.md + tabBarInset }]}>
-        <CompassPull mapRef={mapRef} region={region} reduced={reduced} />
-        <View style={styles.sheetHeader}>
-          <View style={styles.sheetTitle}>
-            <Text style={typography.heading} numberOfLines={1}>
-              {activeGroup.name}
-            </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {trail.name} · code {activeGroup.inviteCode}
-            </Text>
-          </View>
-          {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
-        </View>
-
-        {status === 'denied' ? (
-          <View style={styles.permissionBanner}>
-            <Ionicons name="location-outline" size={17} color={colors.accent} />
-            <Text style={styles.permissionText}>
-              Location access is off, so your party can&apos;t see you.
-            </Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open location settings"
-              onPress={() => Linking.openSettings()}
-              hitSlop={8}
+              accessibilityLabel="Recentre map on the trail"
+              style={styles.recentreWrap}
+              onPress={() => mapRef.current?.animateToRegion(region, 500)}
             >
-              <Text style={styles.permissionAction}>Settings</Text>
+              <GlassSurface style={styles.recentre}>
+                <Ionicons name="locate" size={20} color={colors.text} />
+              </GlassSurface>
             </Pressable>
           </View>
         ) : null}
 
-        <View style={styles.members}>
-          {members.map((m) => (
-            <View key={m.uid} style={[styles.member, m.stale && styles.memberStale]}>
-              <Avatar initials={m.initials} color={m.color} size={38} />
-              <Text style={styles.memberName} numberOfLines={1}>
-                {m.name}
+        {/* Only overlaps the map by radius.xl (the negative marginTop below), so the
+          blur reads as a frosted lip along the top edge rather than the whole sheet -
+          the sheet itself sits over the screen background beneath that. Swap to
+          solid if this stutters against a moving map on a mid-range device; see
+          BUILD-PLAN.md's S2 performance note. */}
+        <GlassSurface style={styles.sheet}>
+          <CompassPull mapRef={mapRef} region={region} reduced={reduced} />
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetTitle}>
+              <Text style={typography.heading} numberOfLines={1}>
+                {activeGroup.name}
               </Text>
-              <Text style={styles.memberMeta} numberOfLines={1}>
-                {m.meta}
+              <Text style={styles.sub} numberOfLines={1}>
+                {trail.name} · code {activeGroup.inviteCode}
               </Text>
             </View>
-          ))}
-        </View>
+            {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
+          </View>
 
-        {endError ? <Text style={styles.error}>{endError}</Text> : null}
+          {status === 'denied' ? (
+            <View style={styles.permissionBanner}>
+              <Ionicons name="location-outline" size={17} color={colors.accent} />
+              <Text style={styles.permissionText}>
+                Location access is off, so your party can&apos;t see you.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open location settings"
+                onPress={() => Linking.openSettings()}
+                hitSlop={8}
+              >
+                <Text style={styles.permissionAction}>Settings</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
-        {isOwner ? (
-          <Button
-            label="End hike"
-            variant="secondary"
-            icon="stop-circle-outline"
-            loading={ending}
-            onPress={endTheHike}
-          />
-        ) : null}
-      </GlassSurface>
+          <View style={styles.members}>
+            {members.map((m) => (
+              <View key={m.uid} style={[styles.member, m.stale && styles.memberStale]}>
+                <Avatar initials={m.initials} color={m.color} size={38} />
+                <Text style={styles.memberName} numberOfLines={1}>
+                  {m.name}
+                </Text>
+                <Text style={styles.memberMeta} numberOfLines={1}>
+                  {m.meta}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {endError ? <Text style={styles.error}>{endError}</Text> : null}
+
+          {isOwner ? (
+            <Button
+              label="End hike"
+              variant="secondary"
+              icon="stop-circle-outline"
+              loading={ending}
+              onPress={endTheHike}
+            />
+          ) : null}
+        </GlassSurface>
+      </View>
     </View>
   );
 }

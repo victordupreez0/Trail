@@ -22,9 +22,11 @@ export function GlassSurface({
 }: Props) {
   return (
     <View style={[styles.hairline, style]} {...props}>
-      {solid ? (
-        <View style={[StyleSheet.absoluteFill, styles.solidFallback]} />
-      ) : (
+      {/* Always present, blur or not: dimezisBlurView is experimental and known to
+          struggle over SurfaceView-backed content (react-native-maps), so a failed
+          or no-op blur must not mean fully transparent chrome. */}
+      <View style={[StyleSheet.absoluteFill, solid ? styles.solidFallback : styles.tint]} />
+      {solid ? null : (
         <BlurView
           intensity={intensity}
           tint={tint}
@@ -46,5 +48,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: hexWithAlpha(colors.border, 0.6),
   },
+  tint: { backgroundColor: hexWithAlpha(colors.surface, 0.35) },
   solidFallback: { backgroundColor: hexWithAlpha(colors.surface, 0.92) },
 });

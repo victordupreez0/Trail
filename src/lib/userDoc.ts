@@ -13,6 +13,8 @@ import { db } from './firebase';
 import type { UserDoc } from '../types/models';
 
 const DEFAULT_HYDRATION_GOAL_ML = 2000;
+const DEFAULT_WATER_INTERVAL_MIN = 30;
+const DEFAULT_REST_INTERVAL_MIN = 90;
 
 // Nothing has ever created users/{uid}; auth alone doesn't touch Firestore. Called
 // once per sign-in from AppState; a plain existence check rather than setDoc-with-
@@ -31,6 +33,9 @@ export async function ensureUserDoc(
     photoURL: null,
     hydrationGoalMl: DEFAULT_HYDRATION_GOAL_ML,
     waterMl: 0,
+    remindersEnabled: true,
+    waterIntervalMin: DEFAULT_WATER_INTERVAL_MIN,
+    restIntervalMin: DEFAULT_REST_INTERVAL_MIN,
     activeGroupId: null,
     createdAt: serverTimestamp(),
   });
@@ -52,4 +57,11 @@ export async function logWater(uid: string, ml: number): Promise<void> {
 
 export async function setHydrationGoal(uid: string, ml: number): Promise<void> {
   await updateDoc(doc(db, 'users', uid), { hydrationGoalMl: ml });
+}
+
+export async function setReminderSettings(
+  uid: string,
+  patch: Partial<Pick<UserDoc, 'remindersEnabled' | 'waterIntervalMin' | 'restIntervalMin'>>,
+): Promise<void> {
+  await updateDoc(doc(db, 'users', uid), patch);
 }

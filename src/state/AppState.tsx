@@ -13,6 +13,7 @@ import {
   subscribeToActiveGroupForUser,
 } from '../lib/groups';
 import { subscribeToPositions } from '../lib/positions';
+import { cancelHikeReminders, scheduleHikeReminders } from '../lib/reminders';
 import {
   saveTrail,
   unsaveTrail,
@@ -22,6 +23,7 @@ import {
   ensureUserDoc,
   logWater as logWaterDoc,
   setHydrationGoal as setHydrationGoalDoc,
+  setReminderSettings as setReminderSettingsDoc,
   subscribeToUserDoc,
 } from '../lib/userDoc';
 import type { Group, PartyPosition, SavedTrail, UserDoc } from '../types/models';
@@ -50,6 +52,9 @@ type AppStateValue = {
   userDocLoading: boolean;
   logWater: (ml: number) => Promise<void>;
   setHydrationGoal: (ml: number) => Promise<void>;
+  setReminderSettings: (
+    patch: Partial<Pick<UserDoc, 'remindersEnabled' | 'waterIntervalMin' | 'restIntervalMin'>>,
+  ) => Promise<void>;
   activeGroup: Group | null;
   partyPositions: Record<string, PartyPosition>;
   groupLoading: boolean;
@@ -163,6 +168,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return subscribeToPositions(activeGroupDocId, setPartyPositions);
   }, [activeGroupDocId]);
 
+  // Lives here rather than in a screen, so reminders survive navigation between the
+  // pager's tabs. Keyed on whether a hike is active and on the reminder settings
+  // themselves, so toggling the setting or changing an interval mid-hike reschedules
+  // rather than waiting for the next hike to start.
+  const hikeActive = activeGroup !== null && activeGroup.active;
+  const remindersEnabled = userDoc?.remindersEnabled ?? true;
+  const waterIntervalMin = userDoc?.waterIntervalMin ?? 30;
+  const restIntervalMin = userDoc?.restIntervalMin ?? 90;
+  useEffect(() => {
+    if (!hikeActive || !remindersEnabled) {
+      cancelHikeReminders().catch((err) => console.warn('cancelHikeReminders failed', err));
+      return;
+    }
+    scheduleHikeReminders(waterIntervalMin, restIntervalMin).catch((err) =>
+      console.warn('scheduleHikeReminders failed', err),
+    );
+    return () => {
+      cancelHikeReminders().catch((err) => console.warn('cancelHikeReminders failed', err));
+    };
+  }, [hikeActive, remindersEnabled, waterIntervalMin, restIntervalMin]);
+
   const value = useMemo<AppStateValue>(
     () => ({
       hasOnboarded,
@@ -208,6 +234,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setHydrationGoal: async (ml) => {
         if (!user) return;
         await setHydrationGoalDoc(user.uid, ml);
+      },
+      setReminderSettings: async (patch) => {
+        if (!user) return;
+        await setReminderSettingsDoc(user.uid, patch);
       },
       activeGroup,
       partyPositions,

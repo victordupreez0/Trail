@@ -14,6 +14,10 @@ export type UserDoc = {
   // original README schema; added here because the brief needs a real counter, and
   // the user doc is the natural home for it (same read/write audience as the goal).
   waterMl: number;
+  // Local-notification settings. Also not in the original schema; same reasoning.
+  remindersEnabled: boolean;
+  waterIntervalMin: number;
+  restIntervalMin: number;
   activeGroupId: string | null;
   createdAt: Timestamp | null;
 };

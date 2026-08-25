@@ -67,6 +67,11 @@ Database → Rules in the console (or `npx firebase deploy --only firestore:rule
 you've got the CLI logged in). Without the rules published, Firestore's default denies
 every read and write, so saving a trail won't do anything.
 
+Profile photo upload needs `backend/storage.rules` published too, separately, under
+Storage → Rules in the console (or `npx firebase deploy --only storage`). Publishing
+the Firestore rules does not publish these; they're a different product with its own
+rules file and its own place in the console.
+
 Other useful commands: `npm run typecheck`, `npm run lint`, `npm test`, and
 `npm run seed` to push the trail catalog into Firestore (uses the Admin SDK, needs
 `GOOGLE_APPLICATION_CREDENTIALS` pointed at a service account key).
@@ -177,6 +182,10 @@ CI.
 - `inviteCodes/{code}`: any signed-in user can read or create one; only the owner of
   the group it points at can update it (to deactivate the code when a hike ends), and
   even then only the `active` field can move.
+
+Storage has its own rules file, `backend/storage.rules`, covering `avatars/{uid}`: any
+signed-in user can read (they're profile photos, not secrets), only the account
+matching `{uid}` can write its own, capped at 5MB and image content types only.
 
 ## What's actually working vs mocked
 

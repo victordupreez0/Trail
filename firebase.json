@@ -3,6 +3,9 @@
     "rules": "backend/firestore.rules",
     "indexes": "backend/firestore.indexes.json"
   },
+  "storage": {
+    "rules": "backend/storage.rules"
+  },
   "emulators": {
     "firestore": {
       "port": 8080

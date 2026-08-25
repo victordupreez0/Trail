@@ -1,7 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
@@ -9,6 +19,7 @@ import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { trails } from '../data/trails';
 import { currentUser } from '../data/user';
+import { removeAvatar, uploadAvatar } from '../lib/profile';
 import { requestPermission } from '../lib/reminders';
 import { useAppState } from '../state/AppState';
 import { colors } from '../theme/colors';
@@ -21,12 +32,17 @@ const REST_INTERVAL_OPTIONS = [60, 90, 120];
 export function ProfileScreen() {
   const { user, logout, savedTrailIds, userDoc, setReminderSettings } = useAppState();
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarProgress, setAvatarProgress] = useState(0);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
   const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
   const hydrationGoalMl = userDoc?.hydrationGoalMl ?? currentUser.hydrationGoalMl;
   const remindersEnabled = userDoc?.remindersEnabled ?? true;
   const waterIntervalMin = userDoc?.waterIntervalMin ?? 30;
   const restIntervalMin = userDoc?.restIntervalMin ?? 90;
+  const photoURL = userDoc?.photoURL ?? user?.photoURL ?? null;
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || currentUser.displayName;
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -35,6 +51,58 @@ export function ProfileScreen() {
   const handleLogout = () => {
     // No navigation here: app/index.tsx redirects once Firebase's auth state changes.
     logout();
+  };
+
+  const pickAndUploadAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setMediaPermissionDenied(true);
+      return;
+    }
+    setMediaPermissionDenied(false);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      // The compression step the brief asks for: never push a multi-megabyte
+      // camera original.
+      quality: 0.6,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setAvatarUploading(true);
+    setAvatarProgress(0);
+    try {
+      await uploadAvatar(user.uid, result.assets[0].uri, setAvatarProgress);
+    } catch {
+      setAvatarError("Couldn't upload that photo. Try again.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    try {
+      await removeAvatar(user.uid);
+    } catch {
+      setAvatarError("Couldn't remove the photo. Try again.");
+    }
+  };
+
+  const handleAvatarPress = () => {
+    const options: {
+      text: string;
+      style?: 'default' | 'cancel' | 'destructive';
+      onPress?: () => void;
+    }[] = [{ text: 'Choose photo', onPress: pickAndUploadAvatar }];
+    if (photoURL)
+      options.push({ text: 'Remove photo', style: 'destructive', onPress: handleRemoveAvatar });
+    options.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert('Profile photo', undefined, options);
   };
 
   const toggleReminders = async (next: boolean) => {
@@ -59,7 +127,38 @@ export function ProfileScreen() {
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
       <View style={styles.head}>
-        <Avatar initials={initials} color={colors.primary} size={78} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo"
+          onPress={handleAvatarPress}
+          disabled={avatarUploading}
+        >
+          <Avatar initials={initials} color={colors.primary} size={78} photoURL={photoURL} />
+          <View style={styles.avatarBadge}>
+            <Ionicons name="camera-outline" size={14} color={colors.surface} />
+          </View>
+        </Pressable>
+        {avatarUploading ? (
+          <View style={styles.avatarProgressTrack}>
+            <View style={[styles.avatarProgressFill, { width: `${avatarProgress * 100}%` }]} />
+          </View>
+        ) : null}
+        {avatarError ? <Text style={styles.errorText}>{avatarError}</Text> : null}
+        {mediaPermissionDenied ? (
+          <View style={styles.permissionBanner}>
+            <Text style={styles.permissionText}>
+              Photo access is off, so Trail can&apos;t set a profile photo.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open photo settings"
+              onPress={() => Linking.openSettings()}
+              hitSlop={8}
+            >
+              <Text style={styles.permissionAction}>Settings</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <Text style={typography.title}>{displayName}</Text>
         <Text style={styles.email}>{email}</Text>
       </View>
@@ -227,6 +326,28 @@ const styles = StyleSheet.create({
   container: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   head: { alignItems: 'center', gap: spacing.xs },
   email: { ...typography.caption, color: colors.muted },
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarProgressTrack: {
+    width: 78,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.surfaceAlt,
+    overflow: 'hidden',
+  },
+  avatarProgressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.primary },
+  errorText: { ...typography.caption, color: colors.danger },
   statRow: { flexDirection: 'row', gap: spacing.sm },
   statCard: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: spacing.md },
   statLabel: { ...typography.caption, color: colors.muted },

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Values come from EXPO_PUBLIC_* env vars (see .env.example) so they land in the
 // bundle at build time, so no expo-constants plumbing is needed.
@@ -20,3 +21,4 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 // (that pattern is obsolete as of Firebase JS SDK v11+).
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);

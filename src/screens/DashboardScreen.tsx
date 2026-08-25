@@ -6,10 +6,12 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { Avatar } from '../components/Avatar';
 import { CountUp } from '../components/CountUp';
+import { HydrationBottle } from '../components/HydrationBottle';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Skeleton } from '../components/ui/Skeleton';
 import { trails } from '../data/trails';
+import { fillRatio, todayKey, waterToday } from '../lib/hydration';
 import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
@@ -24,7 +26,6 @@ const STALE_CHECKIN_MIN = 5;
 const LOW_BATTERY = 0.15;
 const HYDRATION_BEHIND_HOURS = 2;
 const HYDRATION_BEHIND_PCT = 0.4;
-const LOG_WATER_ML = 250;
 
 type Alert = { key: string; severity: 'danger' | 'warning'; text: string };
 
@@ -37,11 +38,8 @@ export function DashboardScreen() {
     savedTrailIds,
     savedTrailMeta,
     userDoc,
-    userDocLoading,
-    logWater,
   } = useAppState();
   const [now, setNow] = useState(() => Date.now());
-  const [waterError, setWaterError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
@@ -53,14 +51,11 @@ export function DashboardScreen() {
 
   const firstName = (user?.displayName || 'Hiker').split(' ')[0];
   const initials = initialsOf(firstName);
-  const waterMl = userDoc?.waterMl ?? 0;
   const goalMl = userDoc?.hydrationGoalMl ?? 2000;
-  const hydrationPct = goalMl > 0 ? Math.min(1, waterMl / goalMl) : 0;
-
-  const handleLogWater = () => {
-    setWaterError(null);
-    logWater(LOG_WATER_ML).catch(() => setWaterError('Could not log water. Try again.'));
-  };
+  const hydrationPct = fillRatio(
+    waterToday(userDoc?.waterMl ?? 0, userDoc?.waterDate ?? null, todayKey()),
+    goalMl,
+  );
 
   // Trail saves and hike starts are the two event types with a real timestamp in the
   // schema. There's no per-member join time stored anywhere, so "member joined" from
@@ -225,34 +220,11 @@ export function DashboardScreen() {
           )}
           <Text style={styles.statFoot}>km today</Text>
         </Card>
-
-        <Pressable
-          onPress={handleLogWater}
-          accessibilityRole="button"
-          accessibilityLabel="Log 250 millilitres of water"
-        >
-          <Card style={styles.statCard}>
-            <View style={styles.statHead}>
-              <Ionicons name="water-outline" size={17} color={colors.accent} />
-              <Text style={styles.statLabel}>Water</Text>
-            </View>
-            {userDocLoading ? (
-              <Skeleton style={styles.statSkeleton} />
-            ) : (
-              <CountUp
-                value={waterMl}
-                format={(n) => `${(n / 1000).toFixed(1)} L`}
-                style={typography.title}
-              />
-            )}
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${hydrationPct * 100}%` }]} />
-            </View>
-            <Text style={styles.statFoot}>of {(goalMl / 1000).toFixed(1)} L · tap to log</Text>
-          </Card>
-        </Pressable>
       </View>
-      {waterError ? <Text style={styles.errorText}>{waterError}</Text> : null}
+
+      <View style={styles.bottleRow}>
+        <HydrationBottle />
+      </View>
 
       {activeGroup ? (
         <View>
@@ -391,15 +363,7 @@ const styles = StyleSheet.create({
   statLabel: { ...typography.caption, color: colors.muted },
   statFoot: { ...typography.caption, color: colors.muted },
   statSkeleton: { width: 40, height: 26, marginVertical: 3 },
-  errorText: { ...typography.caption, color: colors.danger },
-  track: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.surfaceAlt,
-    overflow: 'hidden',
-    marginTop: 2,
-  },
-  fill: { height: '100%', borderRadius: 3, backgroundColor: colors.accent },
+  bottleRow: { alignItems: 'center' },
   partyCard: { gap: spacing.sm },
   partyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   partyText: { flex: 1, gap: 1 },

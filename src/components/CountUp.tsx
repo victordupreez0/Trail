@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text, type TextStyle } from 'react-native';
+import { type StyleProp, type TextStyle } from 'react-native';
+import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
 import { useMotion } from '../hooks/useMotion';
 
@@ -17,7 +18,9 @@ export function CountUp({
 }: {
   value: number;
   format?: (n: number) => string;
-  style?: TextStyle | TextStyle[];
+  // Widened past plain TextStyle so a caller (HydrationBottle) can pass an
+  // animated style, e.g. a colour that crossfades as a shared value moves.
+  style?: StyleProp<AnimatedStyle<TextStyle>>;
 }) {
   const { reduced } = useMotion();
   const [display, setDisplay] = useState(reduced ? value : 0);
@@ -49,5 +52,9 @@ export function CountUp({
     return () => cancelAnimationFrame(raf);
   }, [value, reduced]);
 
-  return <Text style={[{ fontVariant: ['tabular-nums'] }, style]}>{format(display)}</Text>;
+  return (
+    <Animated.Text style={[{ fontVariant: ['tabular-nums'] }, style]}>
+      {format(display)}
+    </Animated.Text>
+  );
 }

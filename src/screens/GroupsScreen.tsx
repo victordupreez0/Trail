@@ -1,14 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MapView, { Polyline, type Region } from 'react-native-maps';
 import Animated, {
   Easing,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -252,7 +256,7 @@ export function GroupsScreen() {
           solid if this stutters against a moving map on a mid-range device; see
           BUILD-PLAN.md's S2 performance note. */}
       <GlassSurface style={[styles.sheet, { paddingBottom: spacing.md + tabBarInset }]}>
-        <View style={styles.grabber} />
+        <CompassPull mapRef={mapRef} region={region} reduced={reduced} />
         <View style={styles.sheetHeader}>
           <View style={styles.sheetTitle}>
             <Text style={typography.heading} numberOfLines={1}>
@@ -309,6 +313,67 @@ export function GroupsScreen() {
         ) : null}
       </GlassSurface>
     </View>
+  );
+}
+
+const PULL_THRESHOLD = 50;
+const PULL_MAX = 90;
+
+// Positions are already live via Firestore's onSnapshot, so there's nothing to
+// refetch - "pull to refresh" here is a gesture-first shortcut to the same recentre
+// the button above already does, not a spinner over a network call. Lives on the
+// grabber rather than the map itself: a pan gesture on the MapView would fight its
+// own native pan/drag handling, and the grabber is already a "pull" affordance with
+// nothing else claiming it today.
+function CompassPull({
+  mapRef,
+  region,
+  reduced,
+}: {
+  mapRef: RefObject<MapView | null>;
+  region: Region;
+  reduced: boolean;
+}) {
+  const pull = useSharedValue(0);
+
+  const recentre = () => {
+    haptics.medium();
+    mapRef.current?.animateToRegion(region, 500);
+  };
+
+  const pan = Gesture.Pan()
+    .activeOffsetY(8)
+    .onUpdate((e) => {
+      pull.value = Math.max(0, Math.min(PULL_MAX, e.translationY));
+    })
+    .onEnd(() => {
+      if (pull.value >= PULL_THRESHOLD) runOnJS(recentre)();
+      // "Settles north": always returns to 0, animated unless reduced motion asks
+      // for an instant jump instead.
+      pull.value = reduced ? 0 : withSpring(0, { damping: 14, stiffness: 140 });
+    });
+
+  const needleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pull.value, [0, PULL_THRESHOLD], [0, 1], 'clamp'),
+    transform: [
+      { translateY: pull.value * 0.5 },
+      { rotate: `${interpolate(pull.value, [0, PULL_MAX], [0, 200], 'clamp')}deg` },
+    ],
+  }));
+
+  return (
+    <GestureDetector gesture={pan}>
+      <View
+        accessible
+        accessibilityLabel="Pull down on the handle to recentre the map"
+        style={styles.grabberArea}
+      >
+        <View style={styles.grabber} />
+        <Animated.View style={[styles.compassNeedle, needleStyle]} pointerEvents="none">
+          <Ionicons name="navigate" size={16} color={colors.primary} />
+        </Animated.View>
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -373,14 +438,17 @@ const styles = StyleSheet.create({
     // clear of it instead.
     justifyContent: 'space-between',
   },
+  // Taller than the visible 4px pill, so the pan gesture's touch target clears the
+  // 44pt accessibility minimum tap targets get everywhere else in the app.
+  grabberArea: { minHeight: 44, justifyContent: 'center', marginBottom: spacing.xs },
   grabber: {
     alignSelf: 'center',
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.border,
-    marginBottom: spacing.xs,
   },
+  compassNeedle: { position: 'absolute', alignSelf: 'center', top: '100%' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sheetTitle: { flex: 1, gap: 2 },
   sub: { ...typography.caption, color: colors.muted },

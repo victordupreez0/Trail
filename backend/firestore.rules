@@ -23,6 +23,25 @@ service cloud.firestore {
       allow write: if false; // seeded by the Admin SDK only
     }
 
+    // Mirrors {code: groupId} outside the member-read-only groups collection. A
+    // joiner is by definition not yet a member, so a query on groups by inviteCode
+    // would be denied before it returns anything; this is the fix.
+    match /inviteCodes/{code} {
+      function ownsReferencedGroup() {
+        return isSignedIn()
+          && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      // Only the group's owner can flip a code inactive (endGroup), and only that
+      // field may move; the groupId a code points at never changes.
+      allow update: if ownsReferencedGroup()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+        && request.resource.data.groupId == resource.data.groupId;
+      allow delete: if false;
+    }
+
     match /groups/{groupId} {
       function isMember() {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;

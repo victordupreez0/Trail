@@ -127,20 +127,26 @@ users/{uid}/savedTrails/{trailId}
 
 trails/{trailId}
   name, difficulty, distanceM, elevationGainM, region,
-  description, photoUrl, location: geopoint, path: geopoint[]
+  description, photoUrl, location: { latitude, longitude }, path: { latitude, longitude }[]
 
 groups/{groupId}
   name, trailId, ownerId, memberIds[], active, inviteCode, startedAt, endedAt
 
 groups/{groupId}/positions/{uid}
-  position: geopoint, accuracy, batteryLevel, moving, updatedAt
+  position: { latitude, longitude }, accuracy, batteryLevel, moving, updatedAt
+
+inviteCodes/{code}
+  groupId, active
 ```
 
 `savedTrails` sits under `users` since it's a natural one-to-many and keeps the rules
 simple. Party positions live under their group rather than in their own top-level
 collection, so a single listener can return the whole party at once, and the rules can
-pin a write to whoever made it. More detail in `docs/specs/2026-08-03-trail-design.md`,
-my original design doc for this.
+pin a write to whoever made it. `inviteCodes` is a small top-level mirror of
+`{code: groupId}`: `groups/{gid}` is member-read-only, so someone joining by invite
+code (who is by definition not yet a member) can't query groups directly by code
+without it. More detail in `docs/specs/2026-08-03-trail-design.md`, my original design
+doc for this.
 
 ## Security rules
 
@@ -157,6 +163,9 @@ CI.
   list.
 - `groups/{gid}/positions/{uid}`: group members can read, and you can only write your
   own position, and only while you're still a member.
+- `inviteCodes/{code}`: any signed-in user can read or create one; only the owner of
+  the group it points at can update it (to deactivate the code when a hike ends), and
+  even then only the `active` field can move.
 
 ## What's actually working vs mocked
 

@@ -15,6 +15,7 @@ const GROUP_ID = 'group-1';
 const MEMBER_A = 'alice';
 const MEMBER_B = 'bob';
 const OUTSIDER = 'carol';
+const INVITE_CODE = 'TRAIL1';
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
@@ -46,7 +47,53 @@ beforeEach(async () => {
       position: { latitude: -33.9, longitude: 18.4 },
       updatedAt: Date.now(),
     });
+    await setDoc(doc(db, 'inviteCodes', INVITE_CODE), {
+      groupId: GROUP_ID,
+      active: true,
+    });
   });
+});
+
+test('a non-member can read an invite code', async () => {
+  const carol = testEnv.authenticatedContext(OUTSIDER).firestore();
+  await assertSucceeds(getDoc(doc(carol, 'inviteCodes', INVITE_CODE)));
+});
+
+test('a non-member cannot read the group itself', async () => {
+  const carol = testEnv.authenticatedContext(OUTSIDER).firestore();
+  await assertFails(getDoc(doc(carol, 'groups', GROUP_ID)));
+});
+
+test("a non-member cannot write to the group's positions", async () => {
+  const carol = testEnv.authenticatedContext(OUTSIDER).firestore();
+  await assertFails(
+    setDoc(doc(carol, 'groups', GROUP_ID, 'positions', OUTSIDER), {
+      position: { latitude: -33.91, longitude: 18.41 },
+      updatedAt: Date.now(),
+    }),
+  );
+});
+
+test('the group owner can deactivate its invite code', async () => {
+  const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
+  await assertSucceeds(
+    setDoc(
+      doc(alice, 'inviteCodes', INVITE_CODE),
+      { groupId: GROUP_ID, active: false },
+      { merge: true },
+    ),
+  );
+});
+
+test("a non-owner cannot deactivate the group's invite code", async () => {
+  const bob = testEnv.authenticatedContext(MEMBER_B).firestore();
+  await assertFails(
+    setDoc(
+      doc(bob, 'inviteCodes', INVITE_CODE),
+      { groupId: GROUP_ID, active: false },
+      { merge: true },
+    ),
+  );
 });
 
 test('a group member can read the party positions', async () => {

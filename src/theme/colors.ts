@@ -12,6 +12,7 @@ export const colors = {
   accent: '#C2703D',
   accentSoft: '#F5E4D6',
   danger: '#B3432B',
+  dangerSoft: '#F6DED8',
   border: '#E2DCD0',
   shadow: '#1A231E',
 };

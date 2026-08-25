@@ -1,13 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { signIn, signOutNow, signUp } from '../lib/auth';
@@ -20,12 +13,24 @@ import {
   subscribeToActiveGroupForUser,
 } from '../lib/groups';
 import { subscribeToPositions } from '../lib/positions';
-import type { Group, PartyPosition } from '../types/models';
+import {
+  saveTrail,
+  unsaveTrail,
+  updateSavedTrailNote as updateSavedTrailNoteDoc,
+} from '../lib/savedTrails';
+import {
+  ensureUserDoc,
+  logWater as logWaterDoc,
+  setHydrationGoal as setHydrationGoalDoc,
+  subscribeToUserDoc,
+} from '../lib/userDoc';
+import type { Group, PartyPosition, SavedTrail, UserDoc } from '../types/models';
 
 const ONBOARDED_KEY = 'trail.hasOnboarded';
 
-// Auth, saved trails, and the group layer are all real (Firebase). The screens
-// consuming this context don't change when the last mock leaves.
+// Auth, saved trails, the group layer, and the user profile doc are all real
+// (Firebase). The screens consuming this context don't change when the last mock
+// leaves.
 type AppStateValue = {
   hasOnboarded: boolean;
   onboardingReady: boolean;
@@ -37,8 +42,14 @@ type AppStateValue = {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   savedTrailIds: string[];
+  savedTrailMeta: Record<string, SavedTrail>;
   isSaved: (trailId: string) => boolean;
   toggleSaved: (trailId: string) => void;
+  updateSavedTrailNote: (trailId: string, note: string) => Promise<void>;
+  userDoc: UserDoc | null;
+  userDocLoading: boolean;
+  logWater: (ml: number) => Promise<void>;
+  setHydrationGoal: (ml: number) => Promise<void>;
   activeGroup: Group | null;
   partyPositions: Record<string, PartyPosition>;
   groupLoading: boolean;
@@ -55,6 +66,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
+  const [savedTrailMeta, setSavedTrailMeta] = useState<Record<string, SavedTrail>>({});
+  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
+  const [userDocLoading, setUserDocLoading] = useState(false);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
   const [partyPositions, setPartyPositions] = useState<Record<string, PartyPosition>>({});
@@ -63,6 +77,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthReady(true);
+      // Fire-and-forget: nothing in the sign-in flow itself creates users/{uid}, so
+      // this backfills it for both a brand new account and anyone who signed up
+      // before this doc existed. Idempotent, so running it every cold start is fine.
+      if (u) {
+        ensureUserDoc(u.uid, u.displayName ?? '', u.email ?? '').catch((err) =>
+          console.warn('ensureUserDoc failed', err),
+        );
+      }
     });
   }, []);
 
@@ -80,14 +102,38 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) {
       setSavedTrailIds([]);
+      setSavedTrailMeta({});
       return;
     }
     const ref = collection(db, 'users', user.uid, 'savedTrails');
     return onSnapshot(
       ref,
-      (snap) => setSavedTrailIds(snap.docs.map((d) => d.id)),
+      (snap) => {
+        setSavedTrailIds(snap.docs.map((d) => d.id));
+        const meta: Record<string, SavedTrail> = {};
+        for (const d of snap.docs) {
+          const data = d.data();
+          meta[d.id] = { savedAt: data.savedAt ?? null, notes: data.notes ?? '' };
+        }
+        setSavedTrailMeta(meta);
+      },
       (err) => console.warn('savedTrails listener failed', err),
     );
+  }, [user]);
+
+  // Live-syncs the user's own profile doc (hydration, reminders, avatar). Cleared on
+  // sign-out for the same reason the saved-trails listener is.
+  useEffect(() => {
+    if (!user) {
+      setUserDoc(null);
+      setUserDocLoading(false);
+      return;
+    }
+    setUserDocLoading(true);
+    return subscribeToUserDoc(user.uid, (u) => {
+      setUserDoc(u);
+      setUserDocLoading(false);
+    });
   }, [user]);
 
   // The active group is whichever one the signed-in user is a member of and is
@@ -138,16 +184,30 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       },
       logout: () => signOutNow(),
       savedTrailIds,
+      savedTrailMeta,
       isSaved: (trailId) => savedTrailIds.includes(trailId),
       toggleSaved: (trailId) => {
         if (!user) return;
-        const ref = doc(db, 'users', user.uid, 'savedTrails', trailId);
         const write = savedTrailIds.includes(trailId)
-          ? deleteDoc(ref)
-          : setDoc(ref, { savedAt: serverTimestamp() });
+          ? unsaveTrail(user.uid, trailId)
+          : saveTrail(user.uid, trailId);
         // The onSnapshot listener above updates local state; a failed write here
         // means a lost save, so it's worth surfacing, not swallowing.
         write.catch((err) => console.warn('toggleSaved write failed', err));
+      },
+      updateSavedTrailNote: async (trailId, note) => {
+        if (!user) return;
+        await updateSavedTrailNoteDoc(user.uid, trailId, note);
+      },
+      userDoc,
+      userDocLoading,
+      logWater: async (ml) => {
+        if (!user) return;
+        await logWaterDoc(user.uid, ml);
+      },
+      setHydrationGoal: async (ml) => {
+        if (!user) return;
+        await setHydrationGoalDoc(user.uid, ml);
       },
       activeGroup,
       partyPositions,
@@ -176,6 +236,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       authReady,
       user,
       savedTrailIds,
+      savedTrailMeta,
+      userDoc,
+      userDocLoading,
       activeGroup,
       partyPositions,
       groupLoading,

@@ -10,6 +10,10 @@ export type UserDoc = {
   email: string;
   photoURL: string | null;
   hydrationGoalMl: number;
+  // Running total for the day, logged in 250ml taps from the dashboard. Not in the
+  // original README schema; added here because the brief needs a real counter, and
+  // the user doc is the natural home for it (same read/write audience as the goal).
+  waterMl: number;
   activeGroupId: string | null;
   createdAt: Timestamp | null;
 };

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -21,12 +23,29 @@ import { colors, shadow } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
+const NOTE_DEBOUNCE_MS = 600;
+
 export default function TrailDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = trails.find((t) => t.id === id);
-  const { isSaved, toggleSaved } = useAppState();
+  const { isSaved, toggleSaved, savedTrailMeta, updateSavedTrailNote } = useAppState();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  // Hooks run before the not-found early return below, so they stay unconditional
+  // regardless of whether `trail` resolves.
+  const savedNote = trail ? (savedTrailMeta[trail.id]?.notes ?? '') : '';
+  const [noteText, setNoteText] = useState(savedNote);
+  const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const noteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => setNoteText(savedNote), [savedNote]);
+  useEffect(
+    () => () => {
+      if (noteDebounce.current) clearTimeout(noteDebounce.current);
+    },
+    [],
+  );
 
   if (!trail) {
     return (
@@ -38,6 +57,18 @@ export default function TrailDetail() {
   }
 
   const saved = isSaved(trail.id);
+
+  const onChangeNote = (next: string) => {
+    setNoteText(next);
+    setNoteSaveState('idle');
+    if (noteDebounce.current) clearTimeout(noteDebounce.current);
+    noteDebounce.current = setTimeout(() => {
+      setNoteSaveState('saving');
+      updateSavedTrailNote(trail.id, next)
+        .then(() => setNoteSaveState('saved'))
+        .catch(() => setNoteSaveState('error'));
+    }, NOTE_DEBOUNCE_MS);
+  };
 
   return (
     <View style={styles.root}>
@@ -87,6 +118,32 @@ export default function TrailDetail() {
           </View>
 
           <Text style={styles.description}>{trail.description}</Text>
+
+          {saved ? (
+            <View style={styles.noteSection}>
+              <Text style={styles.sectionTitle}>Your note</Text>
+              <View style={styles.noteWrap}>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="Add a note for this trail..."
+                  placeholderTextColor={colors.muted}
+                  value={noteText}
+                  onChangeText={onChangeNote}
+                  multiline
+                  accessibilityLabel={`Note for ${trail.name}`}
+                />
+                {noteSaveState === 'saving' ? (
+                  <Text style={styles.noteStatus}>Saving...</Text>
+                ) : null}
+                {noteSaveState === 'saved' ? <Text style={styles.noteStatus}>Saved</Text> : null}
+                {noteSaveState === 'error' ? (
+                  <Text style={[styles.noteStatus, styles.noteError]}>
+                    Couldn&apos;t save. Try again.
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
 
           <Text style={styles.sectionTitle}>Route</Text>
           <View style={[styles.mapWrap, { width: width - spacing.lg * 2 }]}>
@@ -199,6 +256,17 @@ const styles = StyleSheet.create({
   statLabel: { ...typography.caption, color: colors.muted },
   description: { ...typography.body, marginTop: spacing.sm },
   sectionTitle: { ...typography.heading, marginTop: spacing.md },
+  noteSection: { marginTop: -spacing.sm },
+  noteWrap: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.xs,
+    gap: 4,
+  },
+  noteInput: { ...typography.body, color: colors.text, minHeight: 44, textAlignVertical: 'top' },
+  noteStatus: { ...typography.caption, color: colors.muted },
+  noteError: { color: colors.danger },
   mapWrap: {
     height: 200,
     borderRadius: radius.lg,

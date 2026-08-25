@@ -1,32 +1,125 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { groups } from '../data/groups';
+import { Skeleton } from '../components/ui/Skeleton';
 import { trails } from '../data/trails';
-import { currentUser } from '../data/user';
+import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-const HYDRATION_ML = 1200;
+// Alerts and "last seen" copy are only as fresh as the last render; on an otherwise
+// idle dashboard nothing re-renders on its own, so this re-evaluates them every 30s
+// (same landmine P2's GroupsScreen has, at a slower cadence since it's less urgent here).
+const TICK_MS = 30_000;
+const STALE_CHECKIN_MIN = 5;
+const LOW_BATTERY = 0.15;
+const HYDRATION_BEHIND_HOURS = 2;
+const HYDRATION_BEHIND_PCT = 0.4;
+const LOG_WATER_ML = 250;
+
+type Alert = { key: string; severity: 'danger' | 'warning'; text: string };
 
 export function DashboardScreen() {
-  // Rewired onto the real Firestore group in P4; for now this just keeps the mock
-  // hero card compiling against the shape it already expects.
-  const { user, activeGroup, savedTrailIds } = useAppState();
-  const group = groups.find((g) => g.id === activeGroup?.id);
-  const activeTrail = group ? trails.find((t) => t.id === group.trailId) : undefined;
+  const {
+    user,
+    activeGroup,
+    groupLoading,
+    partyPositions,
+    savedTrailIds,
+    savedTrailMeta,
+    userDoc,
+    userDocLoading,
+    logWater,
+  } = useAppState();
+  const [now, setNow] = useState(() => Date.now());
+  const [waterError, setWaterError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const activeTrail = activeGroup ? trails.find((t) => t.id === activeGroup.trailId) : undefined;
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
 
-  const firstName = (user?.displayName || currentUser.displayName).split(' ')[0];
-  const initials = firstName.slice(0, 2).toUpperCase();
-  const hydrationPct = Math.min(1, HYDRATION_ML / currentUser.hydrationGoalMl);
+  const firstName = (user?.displayName || 'Hiker').split(' ')[0];
+  const initials = initialsOf(firstName);
+  const waterMl = userDoc?.waterMl ?? 0;
+  const goalMl = userDoc?.hydrationGoalMl ?? 2000;
+  const hydrationPct = goalMl > 0 ? Math.min(1, waterMl / goalMl) : 0;
+
+  const handleLogWater = () => {
+    setWaterError(null);
+    logWater(LOG_WATER_ML).catch(() => setWaterError('Could not log water. Try again.'));
+  };
+
+  // Trail saves and hike starts are the two event types with a real timestamp in the
+  // schema. There's no per-member join time stored anywhere, so "member joined" from
+  // the brief's example is left out rather than faked.
+  const events: {
+    key: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    text: string;
+    atMs: number;
+  }[] = [];
+  for (const id of savedTrailIds) {
+    const savedAt = savedTrailMeta[id]?.savedAt;
+    const t = trails.find((tr) => tr.id === id);
+    if (savedAt && t) {
+      events.push({
+        key: `save-${id}`,
+        icon: 'bookmark',
+        text: `Saved ${t.name}`,
+        atMs: savedAt.toMillis(),
+      });
+    }
+  }
+  if (activeGroup?.startedAt) {
+    events.push({
+      key: `start-${activeGroup.id}`,
+      icon: 'flag',
+      text: `Started ${activeTrail?.name ?? 'a hike'}`,
+      atMs: activeGroup.startedAt.toMillis(),
+    });
+  }
+  const recentEvents = events.sort((a, b) => b.atMs - a.atMs).slice(0, 3);
+
+  const alerts: Alert[] = [];
+  if (activeGroup && user) {
+    for (const [uid, pos] of Object.entries(partyPositions)) {
+      if (uid === user.uid) continue;
+      const updatedAtMs = pos.updatedAt ? pos.updatedAt.toMillis() : null;
+      const ageMin = updatedAtMs !== null ? (now - updatedAtMs) / 60_000 : 0;
+      if (ageMin > STALE_CHECKIN_MIN) {
+        alerts.push({
+          key: `stale-${uid}`,
+          severity: 'warning',
+          text: `${pos.displayName} hasn't checked in for ${Math.round(ageMin)} minutes`,
+        });
+      }
+      if (pos.batteryLevel < LOW_BATTERY) {
+        alerts.push({
+          key: `battery-${uid}`,
+          severity: 'danger',
+          text: `${pos.displayName}'s battery is at ${Math.round(pos.batteryLevel * 100)}%`,
+        });
+      }
+    }
+    if (activeGroup.startedAt) {
+      const hoursIn = (now - activeGroup.startedAt.toMillis()) / 3_600_000;
+      if (hoursIn >= HYDRATION_BEHIND_HOURS && hydrationPct < HYDRATION_BEHIND_PCT) {
+        alerts.push({ key: 'hydration', severity: 'warning', text: "You're behind on water" });
+      }
+    }
+  }
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
@@ -38,7 +131,9 @@ export function DashboardScreen() {
         <Avatar initials={initials} color={colors.primary} size={46} />
       </View>
 
-      {activeTrail && group ? (
+      {groupLoading ? (
+        <Skeleton style={styles.hero} />
+      ) : activeTrail && activeGroup ? (
         <Pressable onPress={() => router.push(`/trail/${activeTrail.id}`)}>
           <View style={styles.hero}>
             <Image source={activeTrail.photo} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -53,8 +148,8 @@ export function DashboardScreen() {
               </View>
               <Text style={styles.heroTitle}>{activeTrail.name}</Text>
               <Text style={styles.heroMeta}>
-                {group.members.length} in your party · {(activeTrail.distanceM / 1000).toFixed(1)}{' '}
-                km
+                {activeGroup.memberIds.length} in your party ·{' '}
+                {(activeTrail.distanceM / 1000).toFixed(1)} km
               </Text>
             </View>
           </View>
@@ -67,58 +162,155 @@ export function DashboardScreen() {
         </Card>
       )}
 
+      {alerts.length > 0 ? (
+        <View style={styles.alerts}>
+          {alerts.map((a) => (
+            <View
+              key={a.key}
+              style={[
+                styles.alert,
+                a.severity === 'danger' ? styles.alertDanger : styles.alertWarning,
+              ]}
+            >
+              <Ionicons
+                name={a.severity === 'danger' ? 'battery-dead-outline' : 'time-outline'}
+                size={16}
+                color={a.severity === 'danger' ? colors.danger : colors.accent}
+              />
+              <Text
+                style={[
+                  styles.alertText,
+                  { color: a.severity === 'danger' ? colors.danger : colors.accent },
+                ]}
+              >
+                {a.text}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.statRow}>
         <Card style={styles.statCard}>
           <View style={styles.statHead}>
-            <Ionicons name="water-outline" size={17} color={colors.accent} />
-            <Text style={styles.statLabel}>Water</Text>
+            <Ionicons name="people-outline" size={17} color={colors.primary} />
+            <Text style={styles.statLabel}>Party</Text>
           </View>
-          <Text style={typography.title}>{(HYDRATION_ML / 1000).toFixed(1)} L</Text>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${hydrationPct * 100}%` }]} />
-          </View>
-          <Text style={styles.statFoot}>
-            of {(currentUser.hydrationGoalMl / 1000).toFixed(1)} L goal
-          </Text>
+          {groupLoading ? (
+            <Skeleton style={styles.statSkeleton} />
+          ) : (
+            <Text style={typography.title}>{activeGroup?.memberIds.length ?? 0}</Text>
+          )}
+          <Text style={styles.statFoot}>with you today</Text>
         </Card>
 
         <Card style={styles.statCard}>
           <View style={styles.statHead}>
-            <Ionicons name="bookmark-outline" size={17} color={colors.primary} />
-            <Text style={styles.statLabel}>Saved</Text>
+            <Ionicons name="walk-outline" size={17} color={colors.primary} />
+            <Text style={styles.statLabel}>Distance</Text>
           </View>
-          <Text style={typography.title}>{saved.length}</Text>
-          <Text style={styles.statFoot}>trails waiting for you</Text>
+          {groupLoading ? (
+            <Skeleton style={styles.statSkeleton} />
+          ) : (
+            <Text style={typography.title}>
+              {activeTrail ? (activeTrail.distanceM / 1000).toFixed(1) : '0.0'}
+            </Text>
+          )}
+          <Text style={styles.statFoot}>km today</Text>
         </Card>
-      </View>
 
-      {group ? (
+        <Pressable
+          onPress={handleLogWater}
+          accessibilityRole="button"
+          accessibilityLabel="Log 250 millilitres of water"
+        >
+          <Card style={styles.statCard}>
+            <View style={styles.statHead}>
+              <Ionicons name="water-outline" size={17} color={colors.accent} />
+              <Text style={styles.statLabel}>Water</Text>
+            </View>
+            {userDocLoading ? (
+              <Skeleton style={styles.statSkeleton} />
+            ) : (
+              <Text style={typography.title}>{(waterMl / 1000).toFixed(1)} L</Text>
+            )}
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${hydrationPct * 100}%` }]} />
+            </View>
+            <Text style={styles.statFoot}>of {(goalMl / 1000).toFixed(1)} L · tap to log</Text>
+          </Card>
+        </Pressable>
+      </View>
+      {waterError ? <Text style={styles.errorText}>{waterError}</Text> : null}
+
+      {activeGroup ? (
         <View>
-          <SectionHeader title="Your party" subtitle="Everyone checked in" />
+          <SectionHeader title="Your party" subtitle="Live from the trail" />
           <Card style={styles.partyCard}>
-            {group.members.map((m, i) => (
-              <View key={m.uid}>
-                <View style={styles.partyRow}>
-                  <Avatar initials={m.initials} color={m.color} size={40} />
-                  <View style={styles.partyText}>
-                    <Text style={typography.label}>{m.displayName}</Text>
-                    <Text style={styles.partyMeta}>Moving · updated just now</Text>
+            {activeGroup.memberIds.map((uid, i) => {
+              const pos = partyPositions[uid];
+              const name = pos?.displayName || 'Member';
+              const staleLabel = pos?.updatedAt
+                ? lastSeenLabel(pos.updatedAt.toMillis(), now)
+                : null;
+              return (
+                <View key={uid}>
+                  <View style={styles.partyRow}>
+                    <Avatar initials={initialsOf(name)} color={memberColor(uid)} size={40} />
+                    <View style={styles.partyText}>
+                      <Text style={typography.label}>{name}</Text>
+                      <Text style={styles.partyMeta}>
+                        {!pos
+                          ? 'Getting a fix...'
+                          : (staleLabel ??
+                            (pos.moving ? 'Moving · just now' : 'Stopped · just now'))}
+                      </Text>
+                    </View>
+                    {pos ? (
+                      <View style={styles.battery}>
+                        <Ionicons
+                          name={
+                            pos.batteryLevel > 0.3 ? 'battery-half-outline' : 'battery-dead-outline'
+                          }
+                          size={15}
+                          color={pos.batteryLevel > 0.3 ? colors.muted : colors.danger}
+                        />
+                        <Text style={styles.partyMeta}>{Math.round(pos.batteryLevel * 100)}%</Text>
+                      </View>
+                    ) : null}
                   </View>
-                  <View style={styles.battery}>
-                    <Ionicons
-                      name={m.batteryLevel > 0.3 ? 'battery-half-outline' : 'battery-dead-outline'}
-                      size={15}
-                      color={m.batteryLevel > 0.3 ? colors.muted : colors.danger}
-                    />
-                    <Text style={styles.partyMeta}>{Math.round(m.batteryLevel * 100)}%</Text>
-                  </View>
+                  {i < activeGroup.memberIds.length - 1 ? <View style={styles.divider} /> : null}
                 </View>
-                {i < group.members.length - 1 ? <View style={styles.divider} /> : null}
+              );
+            })}
+          </Card>
+        </View>
+      ) : null}
+
+      {recentEvents.length > 0 ? (
+        <View>
+          <SectionHeader title="Recent activity" />
+          <Card style={styles.partyCard}>
+            {recentEvents.map((e, i) => (
+              <View key={e.key}>
+                <View style={styles.eventRow}>
+                  <Ionicons name={e.icon} size={16} color={colors.primary} />
+                  <Text style={styles.eventText}>{e.text}</Text>
+                </View>
+                {i < recentEvents.length - 1 ? <View style={styles.divider} /> : null}
               </View>
             ))}
           </Card>
         </View>
       ) : null}
+
+      <View style={styles.statRowSecondary}>
+        <Card style={styles.savedCard}>
+          <Ionicons name="bookmark-outline" size={17} color={colors.primary} />
+          <Text style={typography.title}>{saved.length}</Text>
+          <Text style={styles.statFoot}>trails waiting for you</Text>
+        </Card>
+      </View>
 
       <Pressable style={styles.safetyLink} onPress={() => router.push('/safety')}>
         <Ionicons name="shield-checkmark-outline" size={19} color={colors.primaryDark} />
@@ -164,11 +356,26 @@ const styles = StyleSheet.create({
   heroMeta: { ...typography.caption, color: 'rgba(255,255,255,0.88)' },
   restCard: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.lg },
   restBody: { ...typography.body, color: colors.muted, textAlign: 'center' },
-  statRow: { flexDirection: 'row', gap: spacing.md },
+  alerts: { gap: spacing.xs },
+  alert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm + 2,
+    borderRadius: radius.md,
+  },
+  alertDanger: { backgroundColor: colors.dangerSoft },
+  alertWarning: { backgroundColor: colors.accentSoft },
+  alertText: { ...typography.caption, flex: 1 },
+  statRow: { flexDirection: 'row', gap: spacing.sm },
+  statRowSecondary: { flexDirection: 'row', gap: spacing.md },
   statCard: { flex: 1, gap: 5 },
+  savedCard: { flex: 1, alignItems: 'flex-start', gap: 3 },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statLabel: { ...typography.caption, color: colors.muted },
   statFoot: { ...typography.caption, color: colors.muted },
+  statSkeleton: { width: 40, height: 26, marginVertical: 3 },
+  errorText: { ...typography.caption, color: colors.danger },
   track: {
     height: 6,
     borderRadius: 3,
@@ -182,6 +389,8 @@ const styles = StyleSheet.create({
   partyText: { flex: 1, gap: 1 },
   partyMeta: { ...typography.caption, color: colors.muted },
   battery: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  eventText: { ...typography.label, flex: 1 },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

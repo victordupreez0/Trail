@@ -12,11 +12,11 @@ import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-// hydrationGoalMl has no Firestore home yet, so it still comes from the static profile.
 export function ProfileScreen() {
-  const { user, logout, savedTrailIds } = useAppState();
+  const { user, logout, savedTrailIds, userDoc } = useAppState();
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
   const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
+  const hydrationGoalMl = userDoc?.hydrationGoalMl ?? currentUser.hydrationGoalMl;
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || currentUser.displayName;
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -45,7 +45,7 @@ export function ProfileScreen() {
           <Text style={styles.statLabel}>km planned</Text>
         </Card>
         <Card style={styles.statCard}>
-          <Text style={typography.title}>{(currentUser.hydrationGoalMl / 1000).toFixed(1)}</Text>
+          <Text style={typography.title}>{(hydrationGoalMl / 1000).toFixed(1)}</Text>
           <Text style={styles.statLabel}>L goal</Text>
         </Card>
       </View>
@@ -54,7 +54,7 @@ export function ProfileScreen() {
         <Row
           icon="water-outline"
           label="Hydration goal"
-          value={`${(currentUser.hydrationGoalMl / 1000).toFixed(1)} L / day`}
+          value={`${(hydrationGoalMl / 1000).toFixed(1)} L / day`}
         />
         <View style={styles.divider} />
         <Row icon="notifications-outline" label="Rest reminders" value="Every 45 min" />

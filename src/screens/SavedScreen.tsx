@@ -1,7 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
@@ -28,7 +39,7 @@ export function SavedScreen() {
     useAppState();
   const tabBarInset = useTabBarInset();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
-  const [recommendOpen, setRecommendOpen] = useState(false);
+  const [recommendModalVisible, setRecommendModalVisible] = useState(false);
   const [recommendation, setRecommendation] = useState({
     name: '',
     region: '',
@@ -123,14 +134,12 @@ export function SavedScreen() {
               accessibilityRole="button"
               accessibilityLabel="Recommend a trail"
               onPress={() => {
-                setRecommendOpen((value) => !value);
+                setRecommendModalVisible(true);
                 setRecommendationState('idle');
               }}
               hitSlop={8}
             >
-              <Text style={styles.recommendLink}>
-                {recommendOpen ? 'Close recommendation' : 'Recommend a trail'}
-              </Text>
+              <Text style={styles.recommendLink}>Recommend a trail</Text>
             </Pressable>
           </View>
         }
@@ -149,63 +158,87 @@ export function SavedScreen() {
             onRemove={() => requestRemove(item)}
           />
         )}
-        ListFooterComponent={
-          recommendOpen ? (
-            <View style={styles.recommendationForm}>
-              <Text style={typography.heading}>Recommend a trail</Text>
-              <Text style={styles.sub}>
-                Send it to the trail team for review. They&apos;ll fill in route details before
-                publishing.
-              </Text>
-              <Field
-                label="Trail name"
-                placeholder="Signal Hill"
-                value={recommendation.name}
-                onChangeText={(name) => setRecommendation((current) => ({ ...current, name }))}
-              />
-              <Field
-                label="Region"
-                placeholder="Cape Town, South Africa"
-                value={recommendation.region}
-                onChangeText={(region) => setRecommendation((current) => ({ ...current, region }))}
-              />
-              <Field
-                label="Why recommend it?"
-                placeholder="A short sunset loop with city views"
-                multiline
-                value={recommendation.description}
-                onChangeText={(description) =>
-                  setRecommendation((current) => ({ ...current, description }))
-                }
-                style={styles.recommendationDescription}
-              />
-              <Field
-                label="Photo URL (optional)"
-                autoCapitalize="none"
-                keyboardType="url"
-                value={recommendation.photoUrl}
-                onChangeText={(photoUrl) =>
-                  setRecommendation((current) => ({ ...current, photoUrl }))
-                }
-              />
-              {recommendationState === 'error' ? (
-                <Text style={styles.noteError}>
-                  Add a name, region, and reason, then try again.
-                </Text>
-              ) : null}
-              {recommendationState === 'sent' ? (
-                <Text style={styles.sent}>Recommendation sent for review.</Text>
-              ) : null}
-              <Button
-                label="Send recommendation"
-                icon="send-outline"
-                onPress={submitRecommendation}
-                loading={recommendationState === 'sending'}
-              />
-            </View>
-          ) : null
-        }
       />
+
+      <Modal
+        visible={recommendModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRecommendModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={typography.heading}>Recommend a trail</Text>
+                <Text style={styles.sub}>Send it to the trail team for review.</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close recommendation"
+                onPress={() => setRecommendModalVisible(false)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={24} color={colors.muted} />
+              </Pressable>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View style={styles.recommendationForm}>
+                <Field
+                  label="Trail name"
+                  placeholder="Signal Hill"
+                  value={recommendation.name}
+                  onChangeText={(name) => setRecommendation((current) => ({ ...current, name }))}
+                />
+                <Field
+                  label="Region"
+                  placeholder="Cape Town, South Africa"
+                  value={recommendation.region}
+                  onChangeText={(region) =>
+                    setRecommendation((current) => ({ ...current, region }))
+                  }
+                />
+                <Field
+                  label="Why recommend it?"
+                  placeholder="A short sunset loop with city views"
+                  multiline
+                  value={recommendation.description}
+                  onChangeText={(description) =>
+                    setRecommendation((current) => ({ ...current, description }))
+                  }
+                  style={styles.recommendationDescription}
+                />
+                <Field
+                  label="Photo URL (optional)"
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  value={recommendation.photoUrl}
+                  onChangeText={(photoUrl) =>
+                    setRecommendation((current) => ({ ...current, photoUrl }))
+                  }
+                />
+                {recommendationState === 'error' ? (
+                  <Text style={styles.noteError}>
+                    Add a name, region, and reason, then try again.
+                  </Text>
+                ) : null}
+                {recommendationState === 'sent' ? (
+                  <Text style={styles.sent}>Recommendation sent for review.</Text>
+                ) : null}
+                <Button
+                  label="Send recommendation"
+                  icon="send-outline"
+                  onPress={submitRecommendation}
+                  loading={recommendationState === 'sending'}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {pending ? (
         <View style={[styles.snackbar, { bottom: spacing.lg + tabBarInset }]}>
@@ -368,13 +401,17 @@ const styles = StyleSheet.create({
   noteInput: { ...typography.body, color: colors.text, minHeight: 40, textAlignVertical: 'top' },
   noteStatus: { ...typography.caption, color: colors.muted },
   noteError: { color: colors.danger },
-  recommendationForm: {
-    marginTop: spacing.xl,
-    padding: spacing.md,
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,26,21,0.42)' },
+  modalSheet: {
+    maxHeight: '88%',
+    padding: spacing.lg,
     gap: spacing.md,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.lg,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    backgroundColor: colors.background,
   },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
+  recommendationForm: { gap: spacing.md, paddingBottom: spacing.lg },
   recommendationDescription: { minHeight: 72, textAlignVertical: 'top' },
   sent: { ...typography.caption, color: colors.primaryDark },
   snackbar: {

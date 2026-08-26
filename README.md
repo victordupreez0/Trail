@@ -106,6 +106,17 @@ Scan the QR code with Expo Go, on the same WiFi as your computer. That is the wh
 setup. `.env.example` carries the Firebase web config for my project, so the app talks
 to a database that is already seeded with trails and already has its rules published.
 
+### Demo admin account
+
+Use this shared account to open **Profile → Admin → Manage trails** during the demo:
+
+```text
+Email:    admin@trail.app
+Password: TrailAdmin2026!
+```
+
+This is a hand-in-only account. Do not reuse its password anywhere else.
+
 On WiFi that blocks phone to laptop traffic, which is most campus networks, use
 `npm run start:tunnel` instead.
 

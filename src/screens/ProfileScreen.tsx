@@ -202,24 +202,17 @@ export function ProfileScreen() {
           label="Hydration goal"
           value={`${(hydrationGoalMl / 1000).toFixed(1)} L / day`}
         />
-        <>
-          <View style={styles.divider} />
-          <Row
-            icon="settings-outline"
-            label="Admin"
-            value={isAdmin ? 'Manage trails' : 'Set up access'}
-            onPress={() => {
-              if (isAdmin) {
-                router.push('/admin');
-                return;
-              }
-              Alert.alert(
-                'Make this account an admin',
-                `In Firebase Console, create the document admins/${user?.uid ?? 'your-uid'}. Then reopen Trail.`,
-              );
-            }}
-          />
-        </>
+        {isAdmin ? (
+          <>
+            <View style={styles.divider} />
+            <Row
+              icon="settings-outline"
+              label="Admin"
+              value="Manage trails"
+              onPress={() => router.push('/admin')}
+            />
+          </>
+        ) : null}
         <View style={styles.divider} />
         <Row
           icon="shield-checkmark-outline"

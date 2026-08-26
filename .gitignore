@@ -49,9 +49,6 @@ GoogleService-Info.plist
 firebase-debug.log
 firestore-debug.log
 
-# editor/agent tooling
-.claude/
-CLAUDE.md
-AGENTS.md
+# editor tooling
 .vscode/
 coverage/

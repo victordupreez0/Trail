@@ -181,7 +181,7 @@ export function GroupsScreen() {
 
   return (
     // Reserves the floating tab bar's space here, above the measured box, instead of
-    // inside it - box/onLayout/mapHeight below are untouched (CLAUDE.md), so this is
+    // inside it - box/onLayout/mapHeight below are deliberately untouched, so this is
     // the only place left to restore the pre-tab-bar available height exactly.
     <View style={{ flex: 1, paddingBottom: tabBarInset }}>
       <View

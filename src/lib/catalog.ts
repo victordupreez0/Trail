@@ -12,6 +12,7 @@ export function subscribeToCatalog(
     (snap) => {
       const catalog = snap.docs.map((trail) => {
         const data = trail.data();
+        const bundled = bundledTrails.find((item) => item.id === trail.id);
         return {
           id: trail.id,
           name: data.name,
@@ -21,7 +22,10 @@ export function subscribeToCatalog(
           region: data.region,
           description: data.description,
           photoUrl: data.photoUrl,
-          photo: { uri: data.photoUrl },
+          // Seeded trails already have a matching image in the app bundle. Keeping
+          // that source avoids re-downloading the whole Discover deck on every
+          // cold start; admin-created trails fall back to their remote photo URL.
+          photo: bundled?.photo ?? { uri: data.photoUrl },
           location: data.location,
           path: data.path,
         } as Trail;

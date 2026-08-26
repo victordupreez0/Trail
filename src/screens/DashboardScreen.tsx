@@ -10,7 +10,6 @@ import { HydrationBottle } from '../components/HydrationBottle';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Skeleton } from '../components/ui/Skeleton';
-import { trails } from '../data/trails';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { fillRatio, todayKey, waterToday } from '../lib/hydration';
 import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
@@ -39,6 +38,7 @@ export function DashboardScreen() {
     savedTrailIds,
     savedTrailMeta,
     userDoc,
+    trails,
   } = useAppState();
   const tabBarInset = useTabBarInset();
   const [now, setNow] = useState(() => Date.now());

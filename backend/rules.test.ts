@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -15,6 +15,7 @@ const GROUP_ID = 'group-1';
 const MEMBER_A = 'alice';
 const MEMBER_B = 'bob';
 const OUTSIDER = 'carol';
+const ADMIN = 'admin';
 const INVITE_CODE = 'TRAIL1';
 
 beforeAll(async () => {
@@ -51,6 +52,7 @@ beforeEach(async () => {
       groupId: GROUP_ID,
       active: true,
     });
+    await setDoc(doc(db, 'admins', ADMIN), { enabled: true });
   });
 });
 
@@ -170,7 +172,21 @@ test('a signed-in user can read the trail catalog', async () => {
   await assertSucceeds(getDoc(doc(alice, 'trails', 'trail-1')));
 });
 
-test('a client cannot write to the trail catalog', async () => {
+test('a non-admin cannot write to the trail catalog', async () => {
   const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
   await assertFails(setDoc(doc(alice, 'trails', 'trail-2'), { name: "Devil's Peak" }));
+});
+
+test('an admin can create, update, and delete trails', async () => {
+  const admin = testEnv.authenticatedContext(ADMIN).firestore();
+  const trail = doc(admin, 'trails', 'trail-2');
+  await assertSucceeds(setDoc(trail, { name: "Devil's Peak" }));
+  await assertSucceeds(updateDoc(trail, { name: 'Devil’s Peak' }));
+  await assertSucceeds(deleteDoc(trail));
+});
+
+test('an admin record cannot be self-created or read by someone else', async () => {
+  const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
+  await assertFails(setDoc(doc(alice, 'admins', MEMBER_A), { enabled: true }));
+  await assertFails(getDoc(doc(alice, 'admins', ADMIN)));
 });

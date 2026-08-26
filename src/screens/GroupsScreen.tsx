@@ -22,7 +22,6 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { GlassSurface } from '../components/ui/GlassSurface';
 import { Skeleton } from '../components/ui/Skeleton';
-import { trails } from '../data/trails';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useMotion } from '../hooks/useMotion';
 import { useTabBarInset } from '../hooks/useTabBarInset';
@@ -52,7 +51,7 @@ const BREADCRUMB_LENGTH = 12;
 const STALE_CHECK_INTERVAL_MS = 15_000;
 
 export function GroupsScreen() {
-  const { user, activeGroup, partyPositions, groupLoading, endHike } = useAppState();
+  const { user, activeGroup, partyPositions, groupLoading, endHike, trails } = useAppState();
   // react-native-maps renders blank when its parent sizes it via flex inside a
   // pager, so it needs concrete pixel dimensions. Those come from measuring this
   // screen rather than the window: the window includes the status bar and the

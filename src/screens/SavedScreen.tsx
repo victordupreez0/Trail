@@ -9,7 +9,6 @@ import { TrailCard } from '../components/TrailCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
-import { trails } from '../data/trails';
 import { useMotion } from '../hooks/useMotion';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
@@ -22,7 +21,7 @@ const NOTE_DEBOUNCE_MS = 600;
 const UNDO_WINDOW_MS = 4000;
 
 export function SavedScreen() {
-  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved } = useAppState();
+  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved, trails } = useAppState();
   const tabBarInset = useTabBarInset();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

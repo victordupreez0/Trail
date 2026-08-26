@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { SwipeDeck, type SwipeDecision } from '../components/SwipeDeck';
 import type { Trail } from '../data/trails';
-import { trails } from '../data/trails';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { useAppState } from '../state/AppState';
 import { colors } from '../theme/colors';
@@ -13,20 +12,12 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 export function DiscoverScreen() {
-  const { savedTrailIds, toggleSaved } = useAppState();
+  const { savedTrailIds, toggleSaved, trails } = useAppState();
   const tabBarInset = useTabBarInset();
 
-  // Snapshot once per mount so the deck doesn't reshuffle underneath a swipe as
-  // savedTrailIds changes.
-  // ponytail: savedTrailIds now arrives from an async Firestore listener, so on a
-  // cold start this can snapshot before the first snapshot resolves and include an
-  // already-saved trail. Re-swiping is idempotent (toggleSaved writes the same doc
-  // id), so nothing breaks; gate this on the first snapshot if it's ever confusing
-  // in practice.
   const deck = useMemo(
     () => trails.filter((t) => !savedTrailIds.includes(t.id)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [savedTrailIds, trails],
   );
 
   const handleDecision = (trail: Trail, decision: SwipeDecision) => {

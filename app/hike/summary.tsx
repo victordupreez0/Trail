@@ -16,7 +16,6 @@ import { CountUp } from '../../src/components/CountUp';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { useMotion } from '../../src/hooks/useMotion';
-import { trails } from '../../src/data/trails';
 import { formatDuration, pathLength, pathToSvgD, projectPath } from '../../src/lib/hikeSummary';
 import { todayKey, waterToday } from '../../src/lib/hydration';
 import { hexWithAlpha } from '../../src/lib/party';
@@ -34,8 +33,8 @@ export default function HikeSummary() {
     startedAtMs?: string;
     partySize?: string;
   }>();
+  const { userDoc, trails } = useAppState();
   const trail = trails.find((t) => t.id === trailId);
-  const { userDoc } = useAppState();
   const { reduced } = useMotion();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();

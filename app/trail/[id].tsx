@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
 import { GlassSurface } from '../../src/components/ui/GlassSurface';
-import { trails } from '../../src/data/trails';
 import { useAppState } from '../../src/state/AppState';
 import { colors, shadow } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -28,8 +27,8 @@ const NOTE_DEBOUNCE_MS = 600;
 
 export default function TrailDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { isSaved, toggleSaved, savedTrailMeta, updateSavedTrailNote, trails } = useAppState();
   const trail = trails.find((t) => t.id === id);
-  const { isSaved, toggleSaved, savedTrailMeta, updateSavedTrailNote } = useAppState();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 

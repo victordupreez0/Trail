@@ -24,6 +24,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="group/create" options={{ presentation: 'modal' }} />
             <Stack.Screen name="group/join" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="admin" options={{ presentation: 'modal' }} />
             {/* Swiping back out of the ceremony would undercut "one button: Done,
                 nothing else." */}
             <Stack.Screen name="hike/summary" options={{ gestureEnabled: false }} />

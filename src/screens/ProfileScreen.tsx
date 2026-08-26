@@ -17,7 +17,6 @@ import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { trails } from '../data/trails';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { removeAvatar, uploadAvatar } from '../lib/profile';
 import { requestPermission } from '../lib/reminders';
@@ -33,13 +32,15 @@ const REST_INTERVAL_OPTIONS = [60, 90, 120];
 const DEFAULT_HYDRATION_GOAL_ML = 2000;
 
 export function ProfileScreen() {
-  const { user, logout, savedTrailIds, userDoc, setReminderSettings } = useAppState();
+  const { user, logout, savedTrailIds, userDoc, setReminderSettings, isAdmin, trails } =
+    useAppState();
   const tabBarInset = useTabBarInset();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarProgress, setAvatarProgress] = useState(0);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
   const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
   const hydrationGoalMl = userDoc?.hydrationGoalMl ?? DEFAULT_HYDRATION_GOAL_ML;
@@ -52,9 +53,19 @@ export function ProfileScreen() {
   const initials = displayName.slice(0, 2).toUpperCase();
   const email = user?.email ?? '';
 
-  const handleLogout = () => {
-    // No navigation here: app/index.tsx redirects once Firebase's auth state changes.
-    logout();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLogoutError(null);
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.replace('/(auth)/login');
+    } catch {
+      setLogoutError("Couldn't log out. Try again.");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const pickAndUploadAvatar = async () => {
@@ -191,6 +202,17 @@ export function ProfileScreen() {
           label="Hydration goal"
           value={`${(hydrationGoalMl / 1000).toFixed(1)} L / day`}
         />
+        {isAdmin ? (
+          <>
+            <View style={styles.divider} />
+            <Row
+              icon="settings-outline"
+              label="Admin"
+              value="Manage trails"
+              onPress={() => router.push('/admin')}
+            />
+          </>
+        ) : null}
         <View style={styles.divider} />
         <Row
           icon="shield-checkmark-outline"
@@ -265,7 +287,14 @@ export function ProfileScreen() {
         </Card>
       </View>
 
-      <Button label="Log out" variant="secondary" icon="log-out-outline" onPress={handleLogout} />
+      {logoutError ? <Text style={styles.errorText}>{logoutError}</Text> : null}
+      <Button
+        label="Log out"
+        variant="secondary"
+        icon="log-out-outline"
+        onPress={handleLogout}
+        loading={loggingOut}
+      />
     </ScrollView>
   );
 }

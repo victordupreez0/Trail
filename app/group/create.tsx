@@ -6,7 +6,6 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { trails } from '../../src/data/trails';
 import { haptics } from '../../src/lib/haptics';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
@@ -14,7 +13,7 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function CreateGroup() {
-  const { createGroup } = useAppState();
+  const { createGroup, trails } = useAppState();
   // "Start hike" on a trail's own screen arrives here with that trail preselected.
   const { trailId: preselectedTrailId } = useLocalSearchParams<{ trailId?: string }>();
   const [name, setName] = useState('');

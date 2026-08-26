@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { signIn, signOutNow, signUp } from '../lib/auth';
+import { subscribeToCatalog } from '../lib/catalog';
 import { auth, db } from '../lib/firebase';
 import {
   createGroup as createGroupDoc,
@@ -28,6 +29,7 @@ import {
   subscribeToUserDoc,
 } from '../lib/userDoc';
 import type { Group, PartyPosition, SavedTrail, UserDoc } from '../types/models';
+import { trails as bundledTrails, type Trail } from '../data/trails';
 
 const ONBOARDED_KEY = 'trail.hasOnboarded';
 
@@ -41,6 +43,9 @@ type AppStateValue = {
   authReady: boolean;
   user: User | null;
   isAuthed: boolean;
+  isAdmin: boolean;
+  trails: Trail[];
+  trailsLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -72,6 +77,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [trails, setTrails] = useState<Trail[]>(bundledTrails);
+  const [trailsLoading, setTrailsLoading] = useState(false);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
   const [savedTrailMeta, setSavedTrailMeta] = useState<Record<string, SavedTrail>>({});
   const [savedTrailsLoading, setSavedTrailsLoading] = useState(false);
@@ -95,6 +103,44 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
     });
   }, []);
+
+  // The rules only allow a user to read their own role document. Creation stays in
+  // Firebase Console/Admin SDK, so a client cannot promote itself.
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    return onSnapshot(
+      doc(db, 'admins', user.uid),
+      (snap) => setIsAdmin(snap.exists()),
+      (err) => {
+        console.warn('admin role listener failed', err);
+        setIsAdmin(false);
+      },
+    );
+  }, [user]);
+
+  // The bundled catalog makes the app usable before the first network response;
+  // Firestore replaces it live once the signed-in session is ready.
+  useEffect(() => {
+    if (!user) {
+      setTrails(bundledTrails);
+      setTrailsLoading(false);
+      return;
+    }
+    setTrailsLoading(true);
+    return subscribeToCatalog(
+      (catalog) => {
+        setTrails(catalog);
+        setTrailsLoading(false);
+      },
+      (err) => {
+        console.warn('trail catalog listener failed', err);
+        setTrailsLoading(false);
+      },
+    );
+  }, [user]);
 
   // Read once at cold start. Without this the carousel replays every launch, since
   // hasOnboarded otherwise starts false every time the app process starts fresh.
@@ -213,6 +259,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       authReady,
       user,
       isAuthed: user !== null,
+      isAdmin,
+      trails,
+      trailsLoading,
       signIn: async (email, password) => {
         await signIn(email, password);
       },
@@ -278,6 +327,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       onboardingReady,
       authReady,
       user,
+      isAdmin,
+      trails,
+      trailsLoading,
       savedTrailIds,
       savedTrailMeta,
       savedTrailsLoading,

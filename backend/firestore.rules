@@ -10,6 +10,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // Admin records are provisioned from Firebase Console or the Admin SDK; clients
+    // can only discover their own role and can never grant themselves one.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
     match /users/{uid} {
       allow read, write: if isSelf(uid);
 
@@ -20,7 +32,7 @@ service cloud.firestore {
 
     match /trails/{trailId} {
       allow read: if isSignedIn();
-      allow write: if false; // seeded by the Admin SDK only
+      allow write: if isAdmin();
     }
 
     // Mirrors {code: groupId} outside the member-read-only groups collection. A

@@ -62,6 +62,7 @@ export function GroupsScreen() {
   const [endError, setEndError] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Record<string, Coordinate[]>>({});
   const mapRef = useRef<MapView>(null);
+  const framedMembersRef = useRef('');
   const { reduced } = useMotion();
   const tabBarInset = useTabBarInset();
 
@@ -98,6 +99,28 @@ export function GroupsScreen() {
       return changed ? next : prev;
     });
   }, [partyPositions]);
+
+  useEffect(() => {
+    if (!activeGroup || box.width === 0) return;
+    const coordinates = Object.entries(partyPositions)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([, position]) => position.position);
+    const frameKey = `${activeGroup.id}:${Object.keys(partyPositions).sort().join(',')}`;
+    if (!coordinates.length || framedMembersRef.current === frameKey) return;
+    framedMembersRef.current = frameKey;
+
+    if (coordinates.length === 1) {
+      mapRef.current?.animateToRegion(
+        { ...coordinates[0], latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500,
+      );
+      return;
+    }
+    mapRef.current?.fitToCoordinates(coordinates, {
+      edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+      animated: true,
+    });
+  }, [activeGroup, box.width, partyPositions]);
 
   if (groupLoading) {
     return (

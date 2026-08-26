@@ -62,6 +62,17 @@ export function useLiveLocation(
       }
     };
 
+    const handleLocation = (loc: Location.LocationObject) => {
+      const fix: Fix = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        accuracy: loc.coords.accuracy ?? 0,
+        moving: (loc.coords.speed ?? 0) > MOVING_SPEED_MS,
+      };
+      lastFixRef.current = fix;
+      if (dueForWrite(lastWriteMsRef.current, Date.now(), WATCH_MIN_GAP_MS)) write(fix);
+    };
+
     (async () => {
       setStatus('requesting');
       const { status: permission } = await Location.requestForegroundPermissionsAsync();
@@ -74,18 +85,17 @@ export function useLiveLocation(
       await refreshBattery();
       if (cancelled) return;
 
+      // A stationary phone may not trigger the watcher promptly. Publish one fix
+      // immediately so a newly joined member appears on the host's map.
+      const initialLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (cancelled) return;
+      handleLocation(initialLocation);
+
       watcher = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, distanceInterval: 10, timeInterval: 5000 },
-        (loc) => {
-          const fix: Fix = {
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-            accuracy: loc.coords.accuracy ?? 0,
-            moving: (loc.coords.speed ?? 0) > MOVING_SPEED_MS,
-          };
-          lastFixRef.current = fix;
-          if (dueForWrite(lastWriteMsRef.current, Date.now(), WATCH_MIN_GAP_MS)) write(fix);
-        },
+        handleLocation,
       );
       if (cancelled) {
         watcher.remove();

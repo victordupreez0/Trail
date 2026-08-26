@@ -190,3 +190,15 @@ test('an admin record cannot be self-created or read by someone else', async () 
   await assertFails(setDoc(doc(alice, 'admins', MEMBER_A), { enabled: true }));
   await assertFails(getDoc(doc(alice, 'admins', ADMIN)));
 });
+
+test('a user can recommend a trail, but only an admin can remove it', async () => {
+  const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
+  const recommendation = doc(alice, 'trailRecommendations', 'recommendation-1');
+  await assertSucceeds(
+    setDoc(recommendation, { name: 'Signal Hill', authorId: MEMBER_A, description: 'Sunset loop' }),
+  );
+  await assertFails(deleteDoc(recommendation));
+
+  const admin = testEnv.authenticatedContext(ADMIN).firestore();
+  await assertSucceeds(deleteDoc(doc(admin, 'trailRecommendations', 'recommendation-1')));
+});

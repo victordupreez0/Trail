@@ -6,12 +6,15 @@ import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { TrailCard } from '../components/TrailCard';
+import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Field } from '../components/ui/Field';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
 import { useMotion } from '../hooks/useMotion';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
+import { createTrailRecommendation } from '../lib/trailRecommendations';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
@@ -21,9 +24,20 @@ const NOTE_DEBOUNCE_MS = 600;
 const UNDO_WINDOW_MS = 4000;
 
 export function SavedScreen() {
-  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved, trails } = useAppState();
+  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved, trails, user } =
+    useAppState();
   const tabBarInset = useTabBarInset();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
+  const [recommendOpen, setRecommendOpen] = useState(false);
+  const [recommendation, setRecommendation] = useState({
+    name: '',
+    region: '',
+    description: '',
+    photoUrl: '',
+  });
+  const [recommendationState, setRecommendationState] = useState<
+    'idle' | 'sending' | 'sent' | 'error'
+  >('idle');
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -48,6 +62,35 @@ export function SavedScreen() {
   const undoRemove = () => {
     if (pendingTimer.current) clearTimeout(pendingTimer.current);
     setPending(null);
+  };
+
+  const submitRecommendation = async () => {
+    if (
+      !user ||
+      !recommendation.name.trim() ||
+      !recommendation.region.trim() ||
+      !recommendation.description.trim()
+    ) {
+      setRecommendationState('error');
+      return;
+    }
+    setRecommendationState('sending');
+    try {
+      await createTrailRecommendation(
+        user.uid,
+        user.displayName || user.email?.split('@')[0] || 'Hiker',
+        {
+          name: recommendation.name.trim(),
+          region: recommendation.region.trim(),
+          description: recommendation.description.trim(),
+          photoUrl: recommendation.photoUrl.trim(),
+        },
+      );
+      setRecommendationState('sent');
+      setRecommendation({ name: '', region: '', description: '', photoUrl: '' });
+    } catch {
+      setRecommendationState('error');
+    }
   };
 
   if (savedTrailsLoading) {
@@ -76,6 +119,19 @@ export function SavedScreen() {
             <Text style={styles.sub}>
               {saved.length} {saved.length === 1 ? 'trail' : 'trails'} kept for later
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Recommend a trail"
+              onPress={() => {
+                setRecommendOpen((value) => !value);
+                setRecommendationState('idle');
+              }}
+              hitSlop={8}
+            >
+              <Text style={styles.recommendLink}>
+                {recommendOpen ? 'Close recommendation' : 'Recommend a trail'}
+              </Text>
+            </Pressable>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.gap} />}
@@ -93,6 +149,62 @@ export function SavedScreen() {
             onRemove={() => requestRemove(item)}
           />
         )}
+        ListFooterComponent={
+          recommendOpen ? (
+            <View style={styles.recommendationForm}>
+              <Text style={typography.heading}>Recommend a trail</Text>
+              <Text style={styles.sub}>
+                Send it to the trail team for review. They&apos;ll fill in route details before
+                publishing.
+              </Text>
+              <Field
+                label="Trail name"
+                placeholder="Signal Hill"
+                value={recommendation.name}
+                onChangeText={(name) => setRecommendation((current) => ({ ...current, name }))}
+              />
+              <Field
+                label="Region"
+                placeholder="Cape Town, South Africa"
+                value={recommendation.region}
+                onChangeText={(region) => setRecommendation((current) => ({ ...current, region }))}
+              />
+              <Field
+                label="Why recommend it?"
+                placeholder="A short sunset loop with city views"
+                multiline
+                value={recommendation.description}
+                onChangeText={(description) =>
+                  setRecommendation((current) => ({ ...current, description }))
+                }
+                style={styles.recommendationDescription}
+              />
+              <Field
+                label="Photo URL (optional)"
+                autoCapitalize="none"
+                keyboardType="url"
+                value={recommendation.photoUrl}
+                onChangeText={(photoUrl) =>
+                  setRecommendation((current) => ({ ...current, photoUrl }))
+                }
+              />
+              {recommendationState === 'error' ? (
+                <Text style={styles.noteError}>
+                  Add a name, region, and reason, then try again.
+                </Text>
+              ) : null}
+              {recommendationState === 'sent' ? (
+                <Text style={styles.sent}>Recommendation sent for review.</Text>
+              ) : null}
+              <Button
+                label="Send recommendation"
+                icon="send-outline"
+                onPress={submitRecommendation}
+                loading={recommendationState === 'sending'}
+              />
+            </View>
+          ) : null
+        }
       />
 
       {pending ? (
@@ -222,6 +334,7 @@ const styles = StyleSheet.create({
   container: { paddingTop: spacing.sm, paddingBottom: spacing.xl },
   header: { gap: 2, marginBottom: spacing.md },
   sub: { ...typography.caption, color: colors.muted },
+  recommendLink: { ...typography.label, color: colors.primary, marginTop: spacing.xs },
   gap: { height: spacing.md },
   loadingCard: { height: 180, borderRadius: radius.xl },
   pressed: { opacity: 0.9 },
@@ -255,6 +368,15 @@ const styles = StyleSheet.create({
   noteInput: { ...typography.body, color: colors.text, minHeight: 40, textAlignVertical: 'top' },
   noteStatus: { ...typography.caption, color: colors.muted },
   noteError: { color: colors.danger },
+  recommendationForm: {
+    marginTop: spacing.xl,
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.lg,
+  },
+  recommendationDescription: { minHeight: 72, textAlignVertical: 'top' },
+  sent: { ...typography.caption, color: colors.primaryDark },
   snackbar: {
     position: 'absolute',
     left: spacing.lg,

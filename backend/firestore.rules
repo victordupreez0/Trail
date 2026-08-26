@@ -35,6 +35,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /trailRecommendations/{recommendationId} {
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
     // Mirrors {code: groupId} outside the member-read-only groups collection. A
     // joiner is by definition not yet a member, so a query on groups by inviteCode
     // would be denied before it returns anything; this is the fix.

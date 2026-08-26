@@ -31,7 +31,7 @@ yarn-error.*
 *.pem
 
 # local env overrides
-# The demo's root .env is intentionally tracked: it contains only Firebase's public
+# The demo's frontend/.env is intentionally tracked: it contains only Firebase's public
 # client configuration. Never add service-account keys or real private secrets.
 .env.local
 .env*.local

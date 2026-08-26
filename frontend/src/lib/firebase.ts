@@ -7,7 +7,7 @@ import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/aut
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Values come from EXPO_PUBLIC_* env vars (see .env.example) so they land in the
+// Values come from EXPO_PUBLIC_* env vars (see frontend/.env) so they land in the
 // bundle at build time, so no expo-constants plumbing is needed.
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,

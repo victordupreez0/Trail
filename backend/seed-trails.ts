@@ -14,7 +14,7 @@ import './nodeAssetStub';
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-import { trails } from '../src/data/trails';
+import { trails } from '../frontend/src/data/trails';
 
 async function main() {
   // Application Default Credentials reads GOOGLE_APPLICATION_CREDENTIALS itself when set.

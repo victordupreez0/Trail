@@ -18,8 +18,8 @@ import './nodeAssetStub';
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
-import { trails } from '../src/data/trails';
-import { memberColor } from '../src/lib/party';
+import { trails } from '../frontend/src/data/trails';
+import { memberColor } from '../frontend/src/lib/party';
 
 const WAYPOINT_COUNT = 200;
 const TICK_MS = 5000;

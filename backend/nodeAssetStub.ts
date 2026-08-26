@@ -4,10 +4,10 @@
  * trying to execute raw JPEG bytes as a script. Metro (the app's real bundler)
  * handles this for free; a Node script run through tsx does not.
  *
- * seed-trails.ts and simulate-hiker.ts both import src/data/trails.ts for its data
+ * seed-trails.ts and simulate-hiker.ts both import frontend/src/data/trails.ts for its data
  * only and already discard the `photo` field, so this just makes that require a
  * no-op (the file path, unused) instead of a crash. Import this before anything
- * that transitively imports src/data/trails.ts.
+ * that transitively imports frontend/src/data/trails.ts.
  */
 import Module from 'node:module';
 

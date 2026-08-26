@@ -92,7 +92,7 @@ shows once and never again, and a profile photo you can change.
 
 ## Run the demo
 
-> **Ready to run.** The committed `.env` is intentional for assessment: it contains
+> **Ready to run.** The committed `frontend/.env` is intentional for assessment: it contains
 > Firebase’s public mobile/web client configuration, so a lecturer can clone and test
 > the real app without having to create a Firebase project first. It contains no
 > service-account credential, private key, or production secret.
@@ -102,12 +102,13 @@ You need **Node 22+** and **Expo Go** on your phone.
 ```bash
 git clone https://github.com/victordupreez0/Trail.git
 cd Trail
+cd frontend
 npm install
 npm start
 ```
 
 Scan the QR code with Expo Go, on the same WiFi as your computer. That is the whole
-setup. The checked-in `.env` provides these six `EXPO_PUBLIC_FIREBASE_*` values:
+setup. The checked-in `frontend/.env` provides these six `EXPO_PUBLIC_FIREBASE_*` values:
 API key, auth domain, project ID, storage bucket, messaging sender ID, and app ID. The
 app talks to a database that is already seeded with trails and has its rules published.
 
@@ -129,7 +130,7 @@ On WiFi that blocks phone to laptop traffic, which is most campus networks, use
 > solely to make the assessment demo reproducible. Firebase web API keys are public
 > client identifiers; access is enforced by the Firestore and Storage rules in
 > `backend/`. No service-account key, Admin SDK credential, or private secret is in
-> this repository. For any real project, `.env` stays untracked.
+> this repository. For any real project, `frontend/.env` stays untracked.
 
 <details>
 <summary><b>Running it against your own Firebase instead</b></summary>
@@ -140,7 +141,7 @@ In the [Firebase console](https://console.firebase.google.com): create a project
 **Web app**, enable **Email/Password** under Authentication, create a **Cloud Firestore**
 database, and create a **Storage** bucket.
 
-Replace the demo values in `.env` with your own:
+Replace the demo values in `frontend/.env` with your own:
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=
@@ -155,8 +156,9 @@ Publish the rules. This step is not optional: Firestore denies every read and wr
 default, so without it nothing saves and the app looks broken.
 
 ```bash
+cd frontend
 npx firebase login
-npx firebase deploy --only firestore:rules,firestore:indexes,storage
+npx firebase --config ../firebase.json deploy --only firestore:rules,firestore:indexes,storage
 npm run seed   # needs GOOGLE_APPLICATION_CREDENTIALS pointing at a service account key
 ```
 
@@ -169,6 +171,7 @@ test harness that walks simulated hikers along a real trail path, writing positi
 Firestore every five seconds, so the live map can be demonstrated with a single phone.
 
 ```bash
+cd frontend
 npm run simulate -- --group=<groupId> --members=2 --trail=lions-head
 ```
 
@@ -178,6 +181,7 @@ Ctrl-C cleans up after itself.
 ### Other commands
 
 ```bash
+cd frontend
 npm run typecheck     # tsc, strict
 npm run lint          # eslint
 npm test              # unit tests
@@ -187,15 +191,11 @@ npm run test:rules    # security rules against the Firestore emulator
 ## How it is put together
 
 ```
-app/          screens, one file per route (expo-router)
-src/
-  components/   shared components, with ui/ as the primitive set
-  screens/      the five pager screens
-  hooks/        useLiveLocation, useMotion
-  lib/          Firebase access and pure logic
-  state/        one AppState context
-  theme/        colour, spacing and type tokens
-  data/         the curated trail catalog
+frontend/     self-contained Expo app
+  app/          screens, one file per route (expo-router)
+  src/          components, screens, hooks, Firebase, state and theme
+  assets/       icons, splash art and bundled trail photos
+  video/        place the demo recording here
 backend/      security rules, rules tests, seed and simulation scripts
 docs/         the brief, my annotated pitch, design spec
 ```

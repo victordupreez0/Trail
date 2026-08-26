@@ -101,7 +101,7 @@ lives in one place both the UI and the background task route through.
 Firebase JS SDK v11+ auto-persists sessions to AsyncStorage on React Native: Metro
 resolves `firebase/auth`'s `"react-native"` package-export condition to a build that
 handles this internally. `getReactNativePersistence(AsyncStorage)` — the older manual
-pattern — is unnecessary and would be redundant with SDK 12 (installed here). `src/lib/firebase.ts`
+pattern — is unnecessary and would be redundant with SDK 12 (installed here). `frontend/src/lib/firebase.ts`
 just calls `getAuth(app)`.
 
 ---
@@ -141,20 +141,20 @@ Mapped to the pitch's W3→W7 roadmap:
 Accessibility isn't a Slice 5 afterthought where it's structural: the pitch commits to a
 one-handed thumb-zone layout, sunlight contrast, large tap targets, haptic gesture
 confirmation, and a reduced-motion option. Thumb-zone spacing and contrast are already in
-the Slice 0 theme tokens (`src/theme/`); reduced-motion lands with reanimated in Slice 4.
+the Slice 0 theme tokens (`frontend/src/theme/`); reduced-motion lands with reanimated in Slice 4.
 
 ## Verification
 
 Foundation is done when:
 
-1. `npm run typecheck && npm run lint && npm run format:check && npm test` are green
+1. From `frontend/`, `npm run typecheck && npm run lint && npm run format:check && npm test` are green
    locally, and `npm run test:rules` is green in CI (needs a JRE locally — see README).
 2. A PR from `chore/project-foundation` shows CI green; `main` rejects a direct push
    once branch protection is turned on (see `CONTRIBUTING.md`).
 3. A non-conventional commit message is rejected by the commit-msg hook.
 4. `npx expo run:android` (or an EAS dev build) launches the app to a placeholder screen
    with the splash showing first.
-5. `npm run seed` populates `trails/` and is safe to run twice.
+5. From `frontend/`, `npm run seed` populates `trails/` and is safe to run twice.
 6. Rules tests prove: a non-member cannot read `groups/{gid}/positions/**`, and a member
    cannot write another member's position doc.
 

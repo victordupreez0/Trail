@@ -67,9 +67,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "jest --config jest.config.js",
-    "test:rules": "firebase emulators:exec --only firestore \"jest --config jest.rules.config.js\"",
-    "seed": "tsx backend/seed-trails.ts",
-    "simulate": "tsx backend/simulate-hiker.ts",
+    "test:rules": "firebase --config ../firebase.json emulators:exec --only firestore \"jest --config jest.rules.config.js\"",
+    "seed": "tsx ../backend/seed-trails.ts",
+    "simulate": "tsx ../backend/simulate-hiker.ts",
     "prepare": "husky"
   },
   "private": true

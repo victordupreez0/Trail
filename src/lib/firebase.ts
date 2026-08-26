@@ -1,5 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+// Firebase's generic declaration omits this React Native-only export, but Metro
+// selects the React Native build where it is available.
+// @ts-expect-error React Native conditional export
+import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -16,9 +20,13 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Metro resolves firebase/auth's "react-native" export condition, which persists
-// sessions to AsyncStorage automatically, so no getReactNativePersistence call is needed
-// (that pattern is obsolete as of Firebase JS SDK v11+).
-export const auth = getAuth(app);
+// Firebase Auth otherwise falls back to in-memory sessions in React Native.
+export const auth = (() => {
+  try {
+    return initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+  } catch {
+    return getAuth(app);
+  }
+})();
 export const db = getFirestore(app);
 export const storage = getStorage(app);

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -38,7 +38,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
-      // No navigation here: app/index.tsx redirects once Firebase's auth state changes.
+      router.replace('/(app)');
     } catch (err) {
       setError(authMessage(err));
     } finally {

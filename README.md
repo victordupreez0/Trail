@@ -111,8 +111,8 @@ to a database that is already seeded with trails and already has its rules publi
 Use this shared account to open **Profile → Admin → Manage trails** during the demo:
 
 ```text
-Email:    admin@trail.app
-Password: TrailAdmin2026!
+Email:    admin@gmail.com
+Password: admin123
 ```
 
 This is a hand-in-only account. Do not reuse its password anywhere else.

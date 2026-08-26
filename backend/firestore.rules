@@ -10,16 +10,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    // Admin records are provisioned from Firebase Console or the Admin SDK; clients
-    // can only discover their own role and can never grant themselves one.
+    // The assignment ships with one shared demo administrator. Production code would
+    // use custom claims or an Admin SDK-managed role document instead.
     function isAdmin() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    match /admins/{uid} {
-      allow read: if isSelf(uid);
-      allow write: if false;
+      return isSignedIn() && request.auth.token.email == 'admin@gmail.com';
     }
 
     match /users/{uid} {

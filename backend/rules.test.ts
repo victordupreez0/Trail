@@ -52,7 +52,6 @@ beforeEach(async () => {
       groupId: GROUP_ID,
       active: true,
     });
-    await setDoc(doc(db, 'admins', ADMIN), { enabled: true });
   });
 });
 
@@ -178,17 +177,11 @@ test('a non-admin cannot write to the trail catalog', async () => {
 });
 
 test('an admin can create, update, and delete trails', async () => {
-  const admin = testEnv.authenticatedContext(ADMIN).firestore();
+  const admin = testEnv.authenticatedContext(ADMIN, { email: 'admin@gmail.com' }).firestore();
   const trail = doc(admin, 'trails', 'trail-2');
   await assertSucceeds(setDoc(trail, { name: "Devil's Peak" }));
   await assertSucceeds(updateDoc(trail, { name: 'Devil’s Peak' }));
   await assertSucceeds(deleteDoc(trail));
-});
-
-test('an admin record cannot be self-created or read by someone else', async () => {
-  const alice = testEnv.authenticatedContext(MEMBER_A).firestore();
-  await assertFails(setDoc(doc(alice, 'admins', MEMBER_A), { enabled: true }));
-  await assertFails(getDoc(doc(alice, 'admins', ADMIN)));
 });
 
 test('a user can recommend a trail, but only an admin can remove it', async () => {
@@ -199,6 +192,6 @@ test('a user can recommend a trail, but only an admin can remove it', async () =
   );
   await assertFails(deleteDoc(recommendation));
 
-  const admin = testEnv.authenticatedContext(ADMIN).firestore();
+  const admin = testEnv.authenticatedContext(ADMIN, { email: 'admin@gmail.com' }).firestore();
   await assertSucceeds(deleteDoc(doc(admin, 'trailRecommendations', 'recommendation-1')));
 });

@@ -54,10 +54,8 @@ export function DashboardScreen() {
   const firstName = (user?.displayName || 'Hiker').split(' ')[0];
   const initials = initialsOf(firstName);
   const goalMl = userDoc?.hydrationGoalMl ?? 2000;
-  const hydrationPct = fillRatio(
-    waterToday(userDoc?.waterMl ?? 0, userDoc?.waterDate ?? null, todayKey()),
-    goalMl,
-  );
+  const todayWaterMl = waterToday(userDoc?.waterMl ?? 0, userDoc?.waterDate ?? null, todayKey());
+  const hydrationPct = fillRatio(todayWaterMl, goalMl);
 
   // Trail saves and hike starts are the two event types with a real timestamp in the
   // schema. There's no per-member join time stored anywhere, so "member joined" from
@@ -195,41 +193,65 @@ export function DashboardScreen() {
         </View>
       ) : null}
 
-      <View style={styles.statRow}>
-        <Card style={styles.statCard}>
-          <View style={styles.statHead}>
-            <Ionicons name="people-outline" size={17} color={colors.primary} />
-            <Text style={styles.statLabel}>Party</Text>
-          </View>
-          {groupLoading ? (
-            <Skeleton style={styles.statSkeleton} />
-          ) : (
-            <CountUp value={activeGroup?.memberIds.length ?? 0} style={typography.title} />
-          )}
-          <Text style={styles.statFoot}>with you today</Text>
-        </Card>
+      {activeGroup ? (
+        <View style={styles.statRow}>
+          <Card style={styles.statCard}>
+            <View style={styles.statHead}>
+              <Ionicons name="people-outline" size={17} color={colors.primary} />
+              <Text style={styles.statLabel}>Party</Text>
+            </View>
+            {groupLoading ? (
+              <Skeleton style={styles.statSkeleton} />
+            ) : (
+              <CountUp value={activeGroup.memberIds.length} style={typography.title} />
+            )}
+            <Text style={styles.statFoot}>with you today</Text>
+          </Card>
 
-        <Card style={styles.statCard}>
-          <View style={styles.statHead}>
-            <Ionicons name="walk-outline" size={17} color={colors.primary} />
-            <Text style={styles.statLabel}>Distance</Text>
-          </View>
-          {groupLoading ? (
-            <Skeleton style={styles.statSkeleton} />
-          ) : (
+          <Card style={styles.statCard}>
+            <View style={styles.statHead}>
+              <Ionicons name="walk-outline" size={17} color={colors.primary} />
+              <Text style={styles.statLabel}>Distance</Text>
+            </View>
             <CountUp
               value={activeTrail ? activeTrail.distanceM / 1000 : 0}
               format={(n) => n.toFixed(1)}
               style={typography.title}
             />
-          )}
-          <Text style={styles.statFoot}>km today</Text>
-        </Card>
-      </View>
+            <Text style={styles.statFoot}>km today</Text>
+          </Card>
+        </View>
+      ) : (
+        <View style={styles.statRow}>
+          <Card style={styles.statCard}>
+            <View style={styles.statHead}>
+              <Ionicons name="bookmark-outline" size={17} color={colors.primary} />
+              <Text style={styles.statLabel}>Saved</Text>
+            </View>
+            <CountUp value={saved.length} style={typography.title} />
+            <Text style={styles.statFoot}>trails waiting for you</Text>
+          </Card>
 
-      <View style={styles.bottleRow}>
-        <HydrationBottle />
-      </View>
+          <Card style={styles.statCard}>
+            <View style={styles.statHead}>
+              <Ionicons name="compass-outline" size={17} color={colors.primary} />
+              <Text style={styles.statLabel}>Next up</Text>
+            </View>
+            <Text style={typography.title} numberOfLines={1}>
+              {saved[0]?.name ?? 'Find a trail'}
+            </Text>
+            <Text style={styles.statFoot}>
+              {saved[0] ? 'from your saved list' : 'to plan your next hike'}
+            </Text>
+          </Card>
+        </View>
+      )}
+
+      {activeGroup ? (
+        <View style={styles.bottleRow}>
+          <HydrationBottle />
+        </View>
+      ) : null}
 
       {activeGroup ? (
         <View>
@@ -292,14 +314,6 @@ export function DashboardScreen() {
         </View>
       ) : null}
 
-      <View style={styles.statRowSecondary}>
-        <Card style={styles.savedCard}>
-          <Ionicons name="bookmark-outline" size={17} color={colors.primary} />
-          <CountUp value={saved.length} style={typography.title} />
-          <Text style={styles.statFoot}>trails waiting for you</Text>
-        </Card>
-      </View>
-
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Safety tips before you head out"
@@ -361,9 +375,7 @@ const styles = StyleSheet.create({
   alertWarning: { backgroundColor: colors.accentSoft },
   alertText: { ...typography.caption, flex: 1 },
   statRow: { flexDirection: 'row', gap: spacing.sm },
-  statRowSecondary: { flexDirection: 'row', gap: spacing.md },
   statCard: { flex: 1, gap: 5 },
-  savedCard: { flex: 1, alignItems: 'flex-start', gap: 3 },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statLabel: { ...typography.caption, color: colors.muted },
   statFoot: { ...typography.caption, color: colors.muted },

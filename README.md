@@ -19,10 +19,6 @@ location with your party, and let everyone stop wondering whether you are okay.
 ![Jest](https://img.shields.io/badge/Jest-tested-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
-<br>
-
-**[Watch the demo video](ADD_YOUR_VIDEO_LINK_HERE)**
-
 </div>
 
 ---
@@ -61,7 +57,7 @@ an elevation gain, a difficulty and a drawn route on a map.
 water at the halfway hut. Swipe left to remove one, with four seconds to undo.
 
 **Hike together.** Start a hike, share a six character code, and everyone who joins
-appears on the same map. Markers glide between updates instead of teleporting, and each
+appears on the same map. Markers update with each live fix, and each
 person leaves a fading breadcrumb trail behind them. If somebody has not checked in for
 a while their avatar dims and their row reads "last seen 4m ago" rather than pretending
 the pin is current.
@@ -108,9 +104,19 @@ npm start
 ```
 
 Scan the QR code with Expo Go, on the same WiFi as your computer. That is the whole
-setup. The checked-in `frontend/.env` provides these six `EXPO_PUBLIC_FIREBASE_*` values:
-API key, auth domain, project ID, storage bucket, messaging sender ID, and app ID. The
-app talks to a database that is already seeded with trails and has its rules published.
+setup. The checked-in `frontend/.env` contains the demo Firebase configuration:
+
+```env
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDO8uv6YKp7nmV_CHTTlRddZi-1sTtX4No
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=trail-e33af.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=trail-e33af
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=trail-e33af.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1010115514705
+EXPO_PUBLIC_FIREBASE_APP_ID=1:1010115514705:web:cbda63f6cbda61419b8370
+```
+
+The app talks to a database that is already seeded with trails and has its rules
+published.
 
 ### Demo admin account
 
@@ -141,16 +147,8 @@ In the [Firebase console](https://console.firebase.google.com): create a project
 **Web app**, enable **Email/Password** under Authentication, create a **Cloud Firestore**
 database, and create a **Storage** bucket.
 
-Replace the demo values in `frontend/.env` with your own:
-
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY=
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-EXPO_PUBLIC_FIREBASE_APP_ID=
-```
+Replace the six demo values in `frontend/.env` with the matching Web app values from
+your Firebase project settings.
 
 Publish the rules. This step is not optional: Firestore denies every read and write by
 default, so without it nothing saves and the app looks broken.
@@ -170,10 +168,8 @@ A shared party map needs more than one person on it. `backend/simulate-hiker.ts`
 test harness that walks simulated hikers along a real trail path, writing positions to
 Firestore every five seconds, so the live map can be demonstrated with a single phone.
 
-```bash
-cd frontend
-npm run simulate -- --group=<groupId> --members=2 --trail=lions-head
-```
+From `frontend/`, run `npm run simulate` with the Firestore group document ID supplied
+through its required `--group` option, plus `--members=2 --trail=lions-head`.
 
 One of them pauses partway so the stale check-in alert has something real to fire on.
 Ctrl-C cleans up after itself.
@@ -261,7 +257,7 @@ library, and a proper end of hike summary.
   by Software Mansion, for the gesture and animation work.
 - **Trail data** for the Cape Town routes cross referenced against
   [SANParks](https://www.sanparks.org) and public trail guides.
-- My lecturer and classmates, for the pitch feedback recorded above.
+- **DV300 lecturer:** Tsungai Katsuro.
 
 ---
 
@@ -270,7 +266,5 @@ library, and a proper end of hike summary.
 **Victor du Preez** · Student 241250<br>
 Interactive Development 300 · Semester 2 · Theme 3<br>
 Open Window · 2026
-
-Built solo. Every commit in this repository is mine.
 
 </div>

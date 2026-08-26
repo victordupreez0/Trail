@@ -96,10 +96,6 @@ and an `NSLocationAlwaysAndWhenInUseUsageDescription` that says plainly what it'
 Tracking starts on "start hike", stops on "end hike" — stopping must be reliable, so it
 lives in one place both the UI and the background task route through.
 
-> `ponytail:` Firestore at ~6 writes/min/user is fine for a class demo (free tier is 20k
-> writes/day) but is the wrong shape at scale — move live positions to Realtime Database
-> if this ever gets real users.
-
 ### Auth persistence
 
 Firebase JS SDK v11+ auto-persists sessions to AsyncStorage on React Native: Metro

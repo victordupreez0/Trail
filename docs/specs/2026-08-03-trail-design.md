@@ -7,8 +7,8 @@ their party, and stay looked-after on the mountain — through a quiet, gesture-
 interface. Think Life360, scoped to a hike.
 
 This is the DV300 (Interactive Development 300, S2 Theme 3) graded submission. The brief
-(`docs/Image 1-6.png`) locks the stack to **React Native + TypeScript + Firebase** and
-grades 70% implementation / 15% concept / 15% project admin — where project admin is
+locks the stack to **React Native + TypeScript + Firebase** and grades 70% implementation /
+15% concept / 15% project admin — where project admin is
 explicitly _code quality, version control discipline, and documentation_. The pitch
 (`docs/annotated-*.pdf`) fixes the concept: inspiration cards were **Goal** (do less —
 protect the calm hiking already offers), **Device Interaction** (live location, trail

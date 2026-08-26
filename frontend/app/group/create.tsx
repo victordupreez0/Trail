@@ -1,12 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { Button } from '../../src/components/ui/Button';
 import { Field } from '../../src/components/ui/Field';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { haptics } from '../../src/lib/haptics';
+import {
+  distanceToTrailhead,
+  formatDistance,
+  TRAILHEAD_RADIUS_METERS,
+} from '../../src/lib/trailhead';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -21,12 +36,7 @@ export default function CreateGroup() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = async () => {
-    if (!name.trim()) {
-      setError('Give your group a name.');
-      return;
-    }
-    setError(null);
+  const createGroupNow = async () => {
     setCreating(true);
     try {
       await createGroup(name.trim(), trailId);
@@ -35,6 +45,92 @@ export default function CreateGroup() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the hike.');
       setCreating(false);
+    }
+  };
+
+  const openDirections = async (latitude: number, longitude: number) => {
+    const destination = `${latitude},${longitude}`;
+    const url =
+      Platform.OS === 'ios'
+        ? `https://maps.apple.com/?daddr=${destination}&dirflg=d`
+        : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setError('Could not open your maps app.');
+    }
+  };
+
+  const showTrailheadPrompt = (
+    title: string,
+    latitude: number,
+    longitude: number,
+    message: string,
+  ) => {
+    setCreating(false);
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: Platform.OS === 'ios' ? 'Apple Maps' : 'Google Maps',
+        onPress: () => void openDirections(latitude, longitude),
+      },
+      { text: 'Start anyway', onPress: () => void createGroupNow() },
+    ]);
+  };
+
+  const create = async () => {
+    if (!name.trim()) {
+      setError('Give your group a name.');
+      return;
+    }
+
+    const trail = trails.find((item) => item.id === trailId);
+    if (!trail) {
+      setError('Pick a trail first.');
+      return;
+    }
+
+    setError(null);
+    setCreating(true);
+    const trailhead = trail.path[0] ?? trail.location;
+
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        showTrailheadPrompt(
+          'Location check unavailable',
+          trailhead.latitude,
+          trailhead.longitude,
+          `Trail can't confirm whether you're at ${trail.name}. Open directions or start anyway.`,
+        );
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const distance = distanceToTrailhead(position.coords, trailhead);
+      const accuracy = position.coords.accuracy ?? 0;
+
+      if (distance > TRAILHEAD_RADIUS_METERS + accuracy) {
+        showTrailheadPrompt(
+          `You're not at ${trail.name} yet`,
+          trailhead.latitude,
+          trailhead.longitude,
+          `You're about ${formatDistance(distance)} from the trailhead. Open directions or start anyway.`,
+        );
+        return;
+      }
+
+      await createGroupNow();
+    } catch {
+      showTrailheadPrompt(
+        'Location check unavailable',
+        trailhead.latitude,
+        trailhead.longitude,
+        `Trail couldn't confirm whether you're at ${trail.name}. Open directions or start anyway.`,
+      );
     }
   };
 

@@ -132,13 +132,13 @@ export function SwipeDeck({
       <View style={styles.stack}>
         {next ? (
           <Animated.View style={[styles.cardSlot, behindStyle]} pointerEvents="none">
-            <TrailCard trail={next} height={340} />
+            <TrailCard key={next.id} trail={next} height={340} />
           </Animated.View>
         ) : null}
 
         <GestureDetector gesture={gesture}>
           <Animated.View style={[styles.cardSlot, cardStyle]}>
-            <TrailCard trail={current} height={340} />
+            <TrailCard key={current.id} trail={current} height={340} />
             <Animated.View style={[styles.badge, styles.saveBadge, saveBadge]}>
               <Ionicons name="bookmark" size={16} color={colors.surface} />
               <Text style={styles.badgeText}>Save</Text>

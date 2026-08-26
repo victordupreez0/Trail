@@ -65,7 +65,7 @@ export default function Onboarding() {
   const ridgeWidth = width + RIDGE_MARGIN * 2;
 
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} safeAreaStyle={styles.safeArea}>
       <View style={styles.ridgeBand} pointerEvents="none">
         {RIDGES.map((ridge) => (
           <Ridge
@@ -163,7 +163,8 @@ function Ridge({
 }
 
 const styles = StyleSheet.create({
-  container: { paddingBottom: spacing.lg },
+  container: { paddingBottom: spacing.lg, backgroundColor: colors.background },
+  safeArea: { backgroundColor: colors.primary },
   // Cancels ScreenContainer's own horizontal padding so the ridges reach the true
   // screen edges, then clips there - each layer's own Svg is wider still, so a shift
   // never reveals a hard edge inside that clipped band.
@@ -200,6 +201,6 @@ const styles = StyleSheet.create({
   body: { ...typography.body, color: colors.muted, fontSize: 17, lineHeight: 26 },
   footer: { gap: spacing.lg },
   dots: { flexDirection: 'row', gap: spacing.xs },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.muted },
   dotActive: { backgroundColor: colors.primary, width: 24 },
 });

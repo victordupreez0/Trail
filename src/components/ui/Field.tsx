@@ -48,5 +48,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   fieldFocused: { borderColor: colors.primary },
-  input: { flex: 1, ...typography.body, color: colors.text, paddingVertical: spacing.md },
+  input: {
+    flex: 1,
+    alignSelf: 'stretch',
+    fontSize: typography.body.fontSize,
+    fontWeight: typography.body.fontWeight,
+    color: colors.text,
+    includeFontPadding: false,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
 });

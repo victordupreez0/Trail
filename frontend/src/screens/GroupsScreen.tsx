@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import MapView, { Polyline, type Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import Animated, {
   Easing,
   interpolate,
@@ -16,7 +16,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AnimatedMarker } from '../components/AnimatedMarker';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -250,16 +249,17 @@ export function GroupsScreen() {
               {members
                 .filter((m) => m.pos)
                 .map((m) => (
-                  <AnimatedMarker
+                  <Marker
                     key={m.uid}
                     coordinate={m.pos!.position}
                     title={m.name}
                     description={`Battery ${Math.round(m.pos!.batteryLevel * 100)}%`}
+                    tracksViewChanges={false}
                   >
                     <View style={[styles.pin, m.stale && styles.pinStale]}>
                       <Avatar initials={m.initials} color={m.color} size={34} />
                     </View>
-                  </AnimatedMarker>
+                  </Marker>
                 ))}
             </MapView>
 
@@ -314,7 +314,30 @@ export function GroupsScreen() {
 
           <View style={styles.members}>
             {members.map((m) => (
-              <View key={m.uid} style={[styles.member, m.stale && styles.memberStale]}>
+              <Pressable
+                key={m.uid}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  m.pos ? `Show ${m.name} on the map` : `${m.name} location unavailable`
+                }
+                disabled={!m.pos}
+                onPress={() =>
+                  m.pos &&
+                  mapRef.current?.animateToRegion(
+                    {
+                      ...m.pos.position,
+                      latitudeDelta: 0.005,
+                      longitudeDelta: 0.005,
+                    },
+                    500,
+                  )
+                }
+                style={({ pressed }) => [
+                  styles.member,
+                  m.stale && styles.memberStale,
+                  pressed && styles.memberPressed,
+                ]}
+              >
                 <Avatar initials={m.initials} color={m.color} size={38} />
                 <Text style={styles.memberName} numberOfLines={1}>
                   {m.name}
@@ -322,7 +345,7 @@ export function GroupsScreen() {
                 <Text style={styles.memberMeta} numberOfLines={1}>
                   {m.meta}
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </View>
 
@@ -502,6 +525,7 @@ const styles = StyleSheet.create({
   permissionAction: { ...typography.caption, color: colors.accent, fontWeight: '700' },
   members: { flexDirection: 'row', gap: spacing.md },
   member: { alignItems: 'center', gap: 4, width: 64 },
+  memberPressed: { opacity: 0.6 },
   memberStale: { opacity: 0.45 },
   memberName: { ...typography.caption, color: colors.text },
   memberMeta: { ...typography.caption, color: colors.muted, fontSize: 11 },

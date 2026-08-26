@@ -1,57 +1,132 @@
-# Trail
+<div align="center">
 
-A mobile app for hikers: find a trail, share your live location with your hiking party,
-and stay looked-after on the mountain, without the app itself getting in the way. Think
-Life360, but scoped to a single hike.
+# Trail.
 
-This is my submission for DV300 (Interactive Development), Semester 2, Theme 3. The
-brief locks the stack to React Native + TypeScript + Firebase, so that's what this is
-built on.
+### Leave the worry at the trailhead.
 
-## Concept
+A calm companion for hiking with people you care about. Find a trail, share your live
+location with your party, and let everyone stop wondering whether you are okay.
 
-Three ideas from my original pitch shaped most of the decisions below:
+<br>
 
-- **Do less, not more.** A hike is already calm; I didn't want the app fighting that.
-  The onboarding carousel (`app/onboarding.tsx`) opens on this line directly.
-- **Live location as peace of mind.** Your phone already knows where you are. The point
-  of the app is turning that into "my group can see I'm okay" without anyone having to
-  send a text.
-- **Gesture-first, buttons only where it matters.** Discovering trails is a swipe deck
-  (up to save, down to skip), moving between the five main screens is a horizontal
-  pager you can flick through, and a proper button only shows up where a tap needs to be
-  unambiguous: starting a hike, saving a trail, ending tracking.
+![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020?style=for-the-badge&logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
-## Project layout
+![Reanimated](https://img.shields.io/badge/Reanimated-4.1-001A72?style=for-the-badge&logo=react&logoColor=white)
+![Google Maps](https://img.shields.io/badge/Maps-1.20-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-tested-C21325?style=for-the-badge&logo=jest&logoColor=white)
+![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
-```
-app/        Expo Router screens, one file per route
-src/        components, screens, static data, theme, Firebase client
-backend/    Firestore security rules, rules tests, and the trail seed script
-assets/     icons, splash, bundled trail photos
-docs/       the assignment brief and my original pitch deck
-```
+<br>
 
-The app is plain Expo at the repo root, since that's where Expo expects it to live.
-`backend/` holds everything Firestore-side: the security rules, their test suite, and
-the script that seeds the trail catalog into Firestore.
+**[Watch the demo video](ADD_YOUR_VIDEO_LINK_HERE)**
 
-## Running it
+</div>
+
+---
+
+## The problem
+
+Time on a trail is one of the best ways to lower stress. A hum of small worries chips
+away at exactly the reset you came for.
+
+> Am I still on the path? Is everyone in my group okay? Have I had enough water?
+> Is my family worrying about me?
+
+Trail's job is to quietly absorb that load, so the hike can do what hiking is for.
+
+## Where the idea came from
+
+Three cards, drawn at random in week one. Rather than fight them, Trail makes all three
+pull in the same direction.
+
+| Card                          | How Trail answers it                                                                                                                                                                  |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Reduce Stress**             | The lens for every decision. The app never shouts, never nags, and does less rather than more.                                                                                        |
+| **Geolocation**               | The engine. Live party positions on a shared map, updated every ten seconds with a heartbeat so nobody's dot goes quietly stale.                                                      |
+| **No Traditional UI Buttons** | Gesture first. Swipe to save a trail, flick between screens, pull to refresh. A real button appears only where a tap has to be unambiguous: start a hike, save a trail, end tracking. |
+
+On that last one: there is a tab bar, and that is a deliberate call. Gestures are the
+shortcut, the tab bar is the map. An app people open one-handed on a mountain does not
+get to hide its navigation, and Usability matters as much to me as the constraint does.
+
+## What it does
+
+**Find a trail.** Swipe up to save, down to skip. Every trail has a photo, a distance,
+an elevation gain, a difficulty and a drawn route on a map.
+
+**Keep your notes.** Save a trail and write yourself a note on it. Bring the 3L bladder,
+water at the halfway hut. Swipe left to remove one, with four seconds to undo.
+
+**Hike together.** Start a hike, share a six character code, and everyone who joins
+appears on the same map. Markers glide between updates instead of teleporting, and each
+person leaves a fading breadcrumb trail behind them. If somebody has not checked in for
+a while their avatar dims and their row reads "last seen 4m ago" rather than pretending
+the pin is current.
+
+**Stay looked after.** The Today screen shows your party, your water, and an alerts strip
+that stays empty when nothing is wrong. When something is, it says so plainly: Sam has
+not checked in for seven minutes. Nadia's battery is at 12%.
+
+**Drink water.** Calm reminders while a hike is running, on your own schedule. "Time for
+water", not "REMINDER: HYDRATE!".
+
+**Make it yours.** Email sign up with a password reset, a three slide onboarding that
+shows once and never again, and a profile photo you can change.
+
+## Built with
+
+|                                                                       | What                                        | Why                                                                                                              |
+| :-------------------------------------------------------------------- | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
+| <img src="https://cdn.simpleicons.org/expo/000000/FFFFFF" width="18"> | **Expo SDK 54 + React Native 0.81**         | Cross platform from one codebase, and Expo Go means anyone can run this from a QR code with no native build.     |
+| <img src="https://cdn.simpleicons.org/typescript/3178C6" width="18">  | **TypeScript, strict**                      | Compile time safety against the shapes coming back from Firestore.                                               |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Firebase Auth**                           | Email and password, with sessions persisted so you do not sign in twice.                                         |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Cloud Firestore**                         | Real time listeners are what make a shared party map work at all.                                                |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Firebase Storage**                        | Profile photos, with size and content type enforced in the rules.                                                |
+| <img src="https://cdn.simpleicons.org/googlemaps/4285F4" width="18">  | **react-native-maps**                       | Trail routes, live party positions, breadcrumb trails.                                                           |
+| <img src="https://cdn.simpleicons.org/react/61DAFB" width="18">       | **Reanimated 4 + Gesture Handler**          | One library earns two requirements: it powers the gesture first constraint and the brief's interactive tweening. |
+| <img src="https://cdn.simpleicons.org/expo/000000/FFFFFF" width="18"> | **expo-location / notifications / battery** | Foreground tracking, local reminders, battery in the party list.                                                 |
+| <img src="https://cdn.simpleicons.org/jest/C21325" width="18">        | **Jest + Firebase Rules Unit Testing**      | Unit tests for the pure logic, and the security rules tested against the emulator in CI.                         |
+
+## Getting started
+
+You need **Node 22+** and the **Expo Go** app on your phone.
 
 ```bash
+git clone https://github.com/victordupreez0/Trail.git
+cd Trail
 npm install
+cp .env.example .env
 npm start
 ```
 
-Scan the QR code with the Expo Go app on your phone (same WiFi as your computer).
-`npm start` figures out my machine's LAN address itself so the QR code is scannable; on
-networks that block phone-to-laptop traffic (most campus WiFi), use
+Scan the QR code with Expo Go, on the same WiFi as your computer. That is the whole
+setup. `.env.example` carries the Firebase web config for my project, so the app talks
+to a database that is already seeded with trails and already has its rules published.
+
+On WiFi that blocks phone to laptop traffic, which is most campus networks, use
 `npm run start:tunnel` instead.
 
-Auth, Firestore, and Storage all need a real Firebase project. Create a `.env` file at
-the repo root with:
+> **On the committed keys:** Firebase web API keys are public client identifiers, not
+> secrets. They ship inside every web and mobile bundle by design, and Google documents
+> them as such. Access is controlled entirely by the security rules in `backend/`, which
+> is why those are tested rather than assumed. No service account key or admin
+> credential is in this repository.
 
-```
+<details>
+<summary><b>Running it against your own Firebase instead</b></summary>
+
+<br>
+
+In the [Firebase console](https://console.firebase.google.com): create a project, add a
+**Web app**, enable **Email/Password** under Authentication, create a **Cloud Firestore**
+database, and create a **Storage** bucket.
+
+Put your own values in `.env`:
+
+```env
 EXPO_PUBLIC_FIREBASE_API_KEY=
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=
@@ -60,203 +135,126 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 ```
 
-filled in from your Firebase project's web app config (console → Project settings →
-Your apps). Then enable Email/Password sign-in under Authentication → Sign-in method,
-create a Firestore database, and publish `backend/firestore.rules` under Firestore
-Database → Rules in the console (or `npx firebase deploy --only firestore:rules` if
-you've got the CLI logged in). Without the rules published, Firestore's default denies
-every read and write, so saving a trail won't do anything.
+Publish the rules. This step is not optional: Firestore denies every read and write by
+default, so without it nothing saves and the app looks broken.
 
-Profile photo upload needs `backend/storage.rules` published too, separately, under
-Storage → Rules in the console (or `npx firebase deploy --only storage`). Publishing
-the Firestore rules does not publish these; they're a different product with its own
-rules file and its own place in the console.
-
-Other useful commands: `npm run typecheck`, `npm run lint`, `npm test`, and
-`npm run seed` to push the trail catalog into Firestore (uses the Admin SDK, needs
-`GOOGLE_APPLICATION_CREDENTIALS` pointed at a service account key).
-
-### Testing the live map
-
-The live map needs a second moving hiker to actually demonstrate, and this project has
-one physical phone. `npm run simulate -- --group=<groupId> --members=2 --trail=lions-head`
-uses the Admin SDK to make one or two fake party members walk the trail's route,
-writing real `groups/{id}/positions/{uid}` documents every 5 seconds, so the map,
-staleness handling, and battery/check-in alerts all have something real driving them.
-It is a test harness, not a hidden feature: it needs the same credentials as
-`npm run seed`, adds the simulated members to the group's `memberIds` for the duration,
-and removes them again (and deletes their position docs) on Ctrl+C.
-
-## Screens
-
-Twelve screens, all navigable:
-
-| Route                   | Screen       | What it does today                                                   |
-| ----------------------- | ------------ | -------------------------------------------------------------------- |
-| `app/onboarding.tsx`    | Onboarding   | Three-slide intro to the concept                                     |
-| `app/(auth)/login.tsx`  | Login        | Real Firebase sign-in, error messages, password reset                |
-| `app/(auth)/signup.tsx` | Sign up      | Real Firebase account creation, sets your display name               |
-| `app/(app)/index.tsx`   | App shell    | Horizontal pager across the five screens below, plus a tab bar       |
-| ...Today                | Dashboard    | Real party, hydration, and alerts, driven by live Firestore data     |
-| ...Discover             | Swipe deck   | Swipe up/down through the 24-trail catalog, tap for more detail      |
-| ...Saved                | Saved trails | Notes, swipe-to-remove with undo, syncs live, survives closing       |
-| ...Party                | Groups       | Live party map, animated markers, breadcrumb trails, stale check-ins |
-| ...You                  | Profile      | Real hydration goal, reminders, profile photo upload                 |
-| `app/trail/[id].tsx`    | Trail detail | Full trail info, map with the route drawn, save toggle               |
-| `app/group/create.tsx`  | Create group | Form, modal presentation                                             |
-| `app/group/join.tsx`    | Join group   | Invite-code form, modal presentation                                 |
-| `app/safety.tsx`        | Safety       | Static hiking and location-sharing tips                              |
-
-## Why I built it this way
-
-- **Expo SDK 54, not the newest one.** Apple's App Store review of the Expo Go app lags
-  new SDK releases by months, so pinning to whatever's actually published avoids "this
-  project needs a newer Expo Go" errors on a real phone.
-- **Expo Router** for file-based navigation, mostly because it gives an auth stack and
-  modals almost for free, and the file layout in `app/` doubles as the route map.
-- **A pager instead of a tab bar** for the main shell (`app/(app)/index.tsx`), because
-  the pitch was built around swiping between screens, not tapping icons. There's still a
-  visible tab bar underneath, since a gesture with no visible fallback isn't
-  discoverable.
-- **react-native-maps** for the trail routes and party positions. It ships inside Expo
-  Go, so no custom dev build is needed just to see a map.
-- **gesture-handler + reanimated** power the swipe deck (`src/components/SwipeDeck.tsx`)
-  and are how the gesture-first idea and the animation requirement both get covered by
-  the same feature.
-- **Firebase**, because the brief requires it: Auth, Firestore, and Storage are all
-  wired up for real (`src/lib/`, `src/state/AppState.tsx`). Only the trail catalog
-  itself (`src/data/trails.ts`) stays static, on purpose - it's a curated, deliberately
-  fixed dataset, not a stand-in for something that was meant to be live.
-- **React Context, no Redux.** State is small enough right now (a user, some saved
-  trail ids, an active group) that a reducer library would just be overhead.
-
-## Data model (Firestore)
-
-Every collection below is live and wired to the UI.
-
-```
-users/{uid}
-  displayName, email, photoURL, hydrationGoalMl, waterMl, waterDate,
-  remindersEnabled, waterIntervalMin, restIntervalMin, activeGroupId, createdAt
-
-users/{uid}/savedTrails/{trailId}
-  savedAt, notes
-
-trails/{trailId}
-  name, difficulty, distanceM, elevationGainM, region,
-  description, photoUrl, location: { latitude, longitude }, path: { latitude, longitude }[]
-
-groups/{groupId}
-  name, trailId, ownerId, memberIds[], active, inviteCode, startedAt, endedAt
-
-groups/{groupId}/positions/{uid}
-  position: { latitude, longitude }, accuracy, batteryLevel, moving, updatedAt
-
-inviteCodes/{code}
-  groupId, active
+```bash
+npx firebase login
+npx firebase deploy --only firestore:rules,firestore:indexes,storage
+npm run seed   # needs GOOGLE_APPLICATION_CREDENTIALS pointing at a service account key
 ```
 
-`savedTrails` sits under `users` since it's a natural one-to-many and keeps the rules
-simple. Party positions live under their group rather than in their own top-level
-collection, so a single listener can return the whole party at once, and the rules can
-pin a write to whoever made it. `inviteCodes` is a small top-level mirror of
-`{code: groupId}`: `groups/{gid}` is member-read-only, so someone joining by invite
-code (who is by definition not yet a member) can't query groups directly by code
-without it. More detail in `docs/specs/2026-08-03-trail-design.md`, my original design
-doc for this.
+</details>
 
-## Security rules
+### Trying the live map on your own
 
-This app shares your location, so the Firestore rules aren't an afterthought, they're
-the actual thing standing between "my party can see me" and "anyone can see me." They
-have their own test suite, `backend/rules.test.ts`, run against the Firebase emulator in
-CI.
+A shared party map needs more than one person on it. `backend/simulate-hiker.ts` is a
+test harness that walks simulated hikers along a real trail path, writing positions to
+Firestore every five seconds, so the live map can be demonstrated with a single phone.
 
-- `users/{uid}` and `users/{uid}/savedTrails/**`: only that user can read or write it.
-- `trails/**`: any signed-in user can read, nobody can write from the client (the seed
-  script uses the Admin SDK, which bypasses rules entirely).
-- `groups/{gid}`: members can read, any signed-in user can create one, only the owner
-  can update it, except joining, which can only add the caller's own uid to the member
-  list.
-- `groups/{gid}/positions/{uid}`: group members can read, and you can only write your
-  own position, and only while you're still a member.
-- `inviteCodes/{code}`: any signed-in user can read or create one; only the owner of
-  the group it points at can update it (to deactivate the code when a hike ends), and
-  even then only the `active` field can move.
+```bash
+npm run simulate -- --group=<groupId> --members=2 --trail=lions-head
+```
 
-Storage has its own rules file, `backend/storage.rules`, covering `avatars/{uid}`: any
-signed-in user can read (they're profile photos, not secrets), only the account
-matching `{uid}` can write its own, capped at 5MB and image content types only.
+One of them pauses partway so the stale check-in alert has something real to fire on.
+Ctrl-C cleans up after itself.
 
-## What's actually working vs mocked
+### Other commands
 
-I'd rather be upfront about this than dress it up.
+```bash
+npm run typecheck     # tsc, strict
+npm run lint          # eslint
+npm test              # unit tests
+npm run test:rules    # security rules against the Firestore emulator
+```
 
-**Working, end to end, against real Firebase:**
+## How it is put together
 
-- Navigation across all 12 screens
-- Email/password auth, session persistence, password reset
-- Saved trails: real Firestore CRUD, per-trail notes, swipe-to-remove with a 4s undo
-- Groups: create/join by invite code, real-time party positions, animated markers,
-  fading breadcrumb trails, stale check-in handling
-- Dashboard: real hydration counter, real party stats, alerts (stale check-in, low
-  battery, hydration behind pace)
-- Local hydration/rest reminders while a hike is active
-- Firebase Storage profile photo upload
-- A ghost-hiker simulator, since one physical phone can't demo a shared party map
-- Firestore security rules, tested in CI (`backend/rules.test.ts`)
-- Swipe-to-save/skip gesture (has a unit test)
-- Trail search, maps, drawn routes
+```
+app/          screens, one file per route (expo-router)
+src/
+  components/   shared components, with ui/ as the primitive set
+  screens/      the five pager screens
+  hooks/        useLiveLocation, useMotion
+  lib/          Firebase access and pure logic
+  state/        one AppState context
+  theme/        colour, spacing and type tokens
+  data/         the curated trail catalog
+backend/      security rules, rules tests, seed and simulation scripts
+docs/         the brief, my annotated pitch, design spec
+```
 
-**Deliberate simplifications, not bugs:**
+### Data model
 
-- Dashboard "Recent activity" shows trail saves and hike starts only. There's no
-  per-member join timestamp anywhere in the schema, so "X joined" from the original
-  brief is left out rather than faked.
-- The dashboard's distance stat is the active trail's own distance, not a cumulative
-  hiked total.
-- Only the hike owner can end a hike. The rules' `joiningSelf()` only ever adds the
-  caller's own uid to `memberIds`, never removes it, so there's no "leave" path to
-  offer either.
+```
+users/{uid}                        displayName, email, photoURL, hydrationGoalMl,
+  └── savedTrails/{trailId}          waterMl, reminder settings
+                                     savedAt, notes
 
-**Not built:**
+trails/{trailId}                   name, difficulty, distanceM, elevationGainM,
+                                     location, path
 
-- Background location tracking. Expo Go cannot run `expo-task-manager`; foreground-only
-  is a deliberate constraint, not an oversight.
-- The real app icon and splash art. That's a generated-asset task, not a code one.
-- A device pass for contrast, largest-font-size layout, and offline behaviour (airplane
-  mode mid-hike) - all three need a physical phone to actually verify.
-- `backend/storage.rules` can't be checked against the Firestore emulator the way
-  `backend/firestore.rules` can (different product); it's traced by hand instead.
+groups/{groupId}                   name, trailId, ownerId, memberIds[], active,
+  └── positions/{uid}                inviteCode, startedAt, endedAt
+                                     position, accuracy, batteryLevel, moving, updatedAt
 
-## Where this is headed
+inviteCodes/{CODE}                 groupId, active
+```
 
-Roughly the plan I pitched at the start, five slices, all now built out:
+That last collection is there for a specific reason. A group can only be read by its
+own members, so somebody joining by code cannot query groups by `inviteCode`, because
+they are not a member yet. `inviteCodes` is a small public mirror that gets them from a
+code to a group id without opening the group itself up to the world.
 
-| Slice | Scope                                                           | Where it's at                                                |
-| ----- | --------------------------------------------------------------- | ------------------------------------------------------------ |
-| 0     | Repo setup, CI, Firestore rules + tests, design tokens          | Done                                                         |
-| 1     | Firebase Auth, onboarding, session persistence                  | Done                                                         |
-| 2     | Trail seed, swipe discovery, saved-trails CRUD                  | Done                                                         |
-| 3     | Groups, live location, live party map                           | Done - foreground tracking, animated markers, breadcrumbs    |
-| 4     | Calm dashboard, hydration/rest notifications, animation polish  | Done                                                         |
-| 5     | Safety content, real app icon, accessibility pass, a demo video | Safety screen is done; icon, video, and a device pass remain |
+### Security
 
-## Conventions
+Location data deserves rules you can actually trust, so they are tested rather than
+assumed. `backend/rules.test.ts` runs sixteen cases against the Firestore emulator on
+every push, covering things like: a non-member cannot read a group, a member cannot
+write somebody else's position, and only a hike's owner can retire its invite code.
 
-Trunk-based: short-lived `feat/*` / `fix/*` / `chore/*` branches that merge straight
-into `main`. Commits follow
-[Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
-`chore:`, and so on), enforced by a commit-msg hook, and a pre-commit hook runs ESLint
-and Prettier on whatever's staged.
+## Deliberate simplifications
 
-## Docs
+I would rather name these than have them look like bugs.
 
-- [`docs/specs/2026-08-03-trail-design.md`](./docs/specs/2026-08-03-trail-design.md): my
-  original design doc, with the full reasoning behind the architecture and what I
-  deliberately left out.
-- `docs/`: the assignment brief and my pitch deck.
+- **Tracking is foreground only.** Background location needs a custom native build, and
+  staying on Expo Go so anyone can run this from a QR code was worth more to me.
+- **Only the hike owner can end a hike.** The rules let a person add their own uid to a
+  group and never remove one, so there is no leave path to offer without loosening them.
+- **Recent activity covers saves and hike starts.** There is no per member join
+  timestamp in the schema, so "X joined" is left out rather than faked.
+- **Trail routes are simplified polylines**, not recorded GPX tracks.
 
-## License
+## What is next
 
-[MIT](./LICENSE)
+Plant and bird identification from a photo, offline trail maps, a full survival tips
+library, and a proper end of hike summary.
+
+## Acknowledgements
+
+- **Trail photography** from [Unsplash](https://unsplash.com), used under the Unsplash
+  licence. Images are bundled locally so they render with no network on the mountain.
+- **Icons** from [Ionicons](https://ionic.io/ionicons) via `@expo/vector-icons`.
+- **[Expo](https://docs.expo.dev)** and **[React Native](https://reactnative.dev)**
+  documentation, which is where the app icon, splash screen and notification work came
+  from.
+- **[Firebase documentation](https://firebase.google.com/docs)**, particularly the
+  security rules guide and the rules unit testing library.
+- **[Reanimated](https://docs.swmansion.com/react-native-reanimated/)** and
+  **[Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/)** docs
+  by Software Mansion, for the gesture and animation work.
+- **Trail data** for the Cape Town routes cross referenced against
+  [SANParks](https://www.sanparks.org) and public trail guides.
+- My lecturer and classmates, for the pitch feedback recorded above.
+
+---
+
+<div align="center">
+
+**Victor du Preez** · Student 241250<br>
+Interactive Development 300 · Semester 2 · Theme 3<br>
+Open Window · 2026
+
+Built solo. Every commit in this repository is mine.
+
+</div>

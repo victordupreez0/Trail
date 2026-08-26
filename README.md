@@ -90,21 +90,26 @@ shows once and never again, and a profile photo you can change.
 | <img src="https://cdn.simpleicons.org/expo/000000/FFFFFF" width="18"> | **expo-location / notifications / battery** | Foreground tracking, local reminders, battery in the party list.                                                 |
 | <img src="https://cdn.simpleicons.org/jest/C21325" width="18">        | **Jest + Firebase Rules Unit Testing**      | Unit tests for the pure logic, and the security rules tested against the emulator in CI.                         |
 
-## Getting started
+## Run the demo
 
-You need **Node 22+** and the **Expo Go** app on your phone.
+> **Ready to run.** The committed `.env` is intentional for assessment: it contains
+> Firebase’s public mobile/web client configuration, so a lecturer can clone and test
+> the real app without having to create a Firebase project first. It contains no
+> service-account credential, private key, or production secret.
+
+You need **Node 22+** and **Expo Go** on your phone.
 
 ```bash
 git clone https://github.com/victordupreez0/Trail.git
 cd Trail
 npm install
-cp .env.example .env
 npm start
 ```
 
 Scan the QR code with Expo Go, on the same WiFi as your computer. That is the whole
-setup. `.env.example` carries the Firebase web config for my project, so the app talks
-to a database that is already seeded with trails and already has its rules published.
+setup. The checked-in `.env` provides these six `EXPO_PUBLIC_FIREBASE_*` values:
+API key, auth domain, project ID, storage bucket, messaging sender ID, and app ID. The
+app talks to a database that is already seeded with trails and has its rules published.
 
 ### Demo admin account
 
@@ -120,11 +125,11 @@ This is a hand-in-only account. Do not reuse its password anywhere else.
 On WiFi that blocks phone to laptop traffic, which is most campus networks, use
 `npm run start:tunnel` instead.
 
-> **On the committed keys:** Firebase web API keys are public client identifiers, not
-> secrets. They ship inside every web and mobile bundle by design, and Google documents
-> them as such. Access is controlled entirely by the security rules in `backend/`, which
-> is why those are tested rather than assumed. No service account key or admin
-> credential is in this repository.
+> **Why committing `.env` is normally bad practice:** It is. This exception exists
+> solely to make the assessment demo reproducible. Firebase web API keys are public
+> client identifiers; access is enforced by the Firestore and Storage rules in
+> `backend/`. No service-account key, Admin SDK credential, or private secret is in
+> this repository. For any real project, `.env` stays untracked.
 
 <details>
 <summary><b>Running it against your own Firebase instead</b></summary>
@@ -135,7 +140,7 @@ In the [Firebase console](https://console.firebase.google.com): create a project
 **Web app**, enable **Email/Password** under Authentication, create a **Cloud Firestore**
 database, and create a **Storage** bucket.
 
-Put your own values in `.env`:
+Replace the demo values in `.env` with your own:
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=

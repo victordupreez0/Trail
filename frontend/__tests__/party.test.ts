@@ -1,5 +1,6 @@
 import {
   breadcrumbSegments,
+  displayNameOf,
   dueForWrite,
   hexWithAlpha,
   initialsOf,
@@ -16,6 +17,12 @@ const position = (ageMs: number | null, batteryLevel = 0.8, displayName = 'Sam')
   displayName,
   batteryLevel,
   updatedAt: ageMs === null ? null : { toMillis: () => NOW - ageMs },
+});
+
+test('a display name falls back to the email, then to Hiker', () => {
+  expect(displayNameOf({ displayName: 'Sam', email: 'x@y.z' })).toBe('Sam');
+  expect(displayNameOf({ displayName: null, email: 'admin@gmail.com' })).toBe('admin');
+  expect(displayNameOf(null)).toBe('Hiker');
 });
 
 test('no alert before a hiker has been quiet for 2 minutes', () => {

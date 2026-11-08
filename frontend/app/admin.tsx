@@ -293,7 +293,7 @@ export default function Admin() {
               accessibilityRole="button"
               accessibilityLabel={`Edit ${trail.name}`}
               onPress={() => beginEdit(trail)}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Ionicons name="create-outline" size={20} color={colors.primary} />
             </Pressable>
@@ -301,7 +301,7 @@ export default function Admin() {
               accessibilityRole="button"
               accessibilityLabel={`Delete ${trail.name}`}
               onPress={() => remove(trail)}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Ionicons name="trash-outline" size={20} color={colors.danger} />
             </Pressable>
@@ -329,6 +329,7 @@ function DifficultyPicker({
             accessibilityRole="radio"
             accessibilityState={{ selected: value === option }}
             onPress={() => onChange(option)}
+            hitSlop={8}
             style={[styles.pill, value === option && styles.pillActive]}
           >
             <Text style={[styles.pillText, value === option && styles.pillTextActive]}>
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 88, textAlignVertical: 'top' },
   help: { ...typography.caption, color: colors.muted, marginTop: -spacing.sm },
   error: { ...typography.caption, color: colors.danger },
-  difficulty: { gap: 6 },
+  difficulty: { gap: spacing.xs },
   label: { ...typography.caption, color: colors.muted },
   pills: { flexDirection: 'row', gap: spacing.xs },
   pill: {
@@ -363,14 +364,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   pillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   pillText: { ...typography.caption, color: colors.text, textTransform: 'capitalize' },
   pillTextActive: { color: colors.surface, fontWeight: '700' },
   listHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   trail: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  trailCopy: { flex: 1, gap: 2 },
+  trailCopy: { flex: 1, gap: spacing.xxs },
   denied: {
     flex: 1,
     justifyContent: 'center',

@@ -7,6 +7,8 @@ export const typography = {
   title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.3, lineHeight: 32 },
   heading: { fontSize: 19, fontWeight: '600', lineHeight: 25 },
   body: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
+  button: { fontSize: 16, fontWeight: '600', lineHeight: 22 },
   label: { fontSize: 14, fontWeight: '600', lineHeight: 19 },
   caption: { fontSize: 13, fontWeight: '500', lineHeight: 18 },
+  micro: { fontSize: 11, fontWeight: '500', lineHeight: 15 },
 } satisfies Record<string, TextStyle>;

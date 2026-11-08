@@ -138,13 +138,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.xs,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 2 },
+  tab: { flex: 1, alignItems: 'center', gap: spacing.xxs, paddingVertical: spacing.xxs },
   iconWrap: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 3,
+    paddingVertical: spacing.xxs,
     borderRadius: radius.pill,
   },
   iconWrapActive: { backgroundColor: colors.primarySoft },
-  tabLabel: { ...typography.caption, fontSize: 11, color: colors.muted },
+  tabLabel: { ...typography.micro, color: colors.muted },
   tabLabelActive: { color: colors.primaryDark, fontWeight: '700' },
 });

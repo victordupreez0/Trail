@@ -162,12 +162,12 @@ export function GroupsScreen() {
           <>
             <EmptyState
               title="No active hike"
-              body="Start a group to share your live location with your party."
+              body="Start a hike to share your live location with your party."
               icon="people-outline"
             />
             <View style={styles.emptyActions}>
               <Button
-                label="Create a group"
+                label="Start a hike"
                 icon="add"
                 onPress={() => router.push('/group/create')}
               />
@@ -212,7 +212,7 @@ export function GroupsScreen() {
       initials: initialsOf(name),
       pos,
       stale: staleLabel !== null,
-      meta: !pos ? 'Getting a fix…' : (staleLabel ?? `${Math.round(pos.batteryLevel * 100)}%`),
+      meta: !pos ? 'Finding location…' : (staleLabel ?? `${Math.round(pos.batteryLevel * 100)}%`),
     };
   });
 
@@ -237,7 +237,7 @@ export function GroupsScreen() {
       await endHike();
       haptics.success();
     } catch (err) {
-      setEndError(err instanceof Error ? err.message : 'Could not end the hike.');
+      setEndError(err instanceof Error ? err.message : "Couldn't end the hike.");
     } finally {
       setEnding(false);
     }
@@ -378,7 +378,7 @@ export function GroupsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Open location settings"
                   onPress={() => Linking.openSettings()}
-                  hitSlop={8}
+                  hitSlop={14}
                 >
                   <Text style={styles.permissionAction}>Settings</Text>
                 </Pressable>
@@ -395,7 +395,7 @@ export function GroupsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Try getting your location again"
                   onPress={retry}
-                  hitSlop={8}
+                  hitSlop={14}
                 >
                   <Text style={styles.permissionAction}>Try again</Text>
                 </Pressable>
@@ -410,7 +410,7 @@ export function GroupsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Reconnect live updates"
                   onPress={retrySync}
-                  hitSlop={8}
+                  hitSlop={14}
                 >
                   <Text style={styles.permissionAction}>Try again</Text>
                 </Pressable>
@@ -461,7 +461,11 @@ export function GroupsScreen() {
               ))}
             </ScrollView>
 
-            {endError ? <Text style={styles.error}>{endError}</Text> : null}
+            {endError ? (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {endError}
+              </Text>
+            ) : null}
           </ScrollView>
 
           {isOwner ? (
@@ -535,7 +539,7 @@ const styles = StyleSheet.create({
   sheetScroll: { flex: 1 },
   sheetContent: { gap: spacing.md, paddingBottom: spacing.sm },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sheetTitle: { flex: 1, gap: 2 },
+  sheetTitle: { flex: 1, gap: spacing.xxs },
   sub: { ...typography.caption, color: colors.muted },
   codeRow: {
     flexDirection: 'row',
@@ -553,10 +557,10 @@ const styles = StyleSheet.create({
   live: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: spacing.xs,
     backgroundColor: colors.primarySoft,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 5,
+    paddingHorizontal: spacing.ms,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
   },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
@@ -566,17 +570,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.accentSoft,
-    padding: spacing.sm + 2,
+    padding: spacing.ms,
     borderRadius: radius.md,
   },
   permissionText: { ...typography.caption, color: colors.text, flex: 1 },
-  permissionAction: { ...typography.caption, color: colors.accent, fontWeight: '700' },
+  permissionAction: { ...typography.caption, color: colors.accentText, fontWeight: '700' },
   members: { flexDirection: 'row', gap: spacing.md },
-  member: { alignItems: 'center', gap: 4, width: 64 },
+  member: { alignItems: 'center', gap: spacing.xs, width: 64 },
   memberPressed: { opacity: 0.6 },
   memberStale: { opacity: 0.45 },
   memberName: { ...typography.caption, color: colors.text },
-  memberMeta: { ...typography.caption, color: colors.muted, fontSize: 11 },
+  memberMeta: { ...typography.micro, color: colors.muted },
   error: { ...typography.caption, color: colors.danger },
   emptyContainer: { flex: 1, justifyContent: 'center', gap: spacing.lg },
   loadingSkeleton: { height: 240, borderRadius: radius.xl },

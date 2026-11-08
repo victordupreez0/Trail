@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import {
   Alert,
   Image,
@@ -19,7 +20,7 @@ import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
 import { GlassSurface } from '../../src/components/ui/GlassSurface';
 import { useAppState } from '../../src/state/AppState';
-import { colors, shadow } from '../../src/theme/colors';
+import { colors, scrims, shadow } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
@@ -59,6 +60,7 @@ export default function TrailDetail() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
@@ -68,7 +70,7 @@ export default function TrailDetail() {
         <View style={styles.heroWrap}>
           <Image source={trail.photo} style={styles.hero} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(15,26,21,0.45)', 'transparent', 'rgba(245,243,237,1)']}
+            colors={scrims.detail}
             locations={[0, 0.4, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -211,15 +213,15 @@ const styles = StyleSheet.create({
   hero: { width: '100%', height: '100%' },
   backWrap: { position: 'absolute', left: spacing.md },
   back: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.card,
   },
   body: { paddingHorizontal: spacing.lg, marginTop: -spacing.xl, gap: spacing.sm },
-  regionRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  regionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   region: { ...typography.caption, color: colors.muted },
   statsRow: {
     flexDirection: 'row',
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     ...shadow.card,
   },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
+  stat: { flex: 1, alignItems: 'center', gap: spacing.xxs },
   statLabel: { ...typography.caption, color: colors.muted },
   description: { ...typography.body, marginTop: spacing.sm },
   sectionTitle: { ...typography.heading, marginTop: spacing.md },

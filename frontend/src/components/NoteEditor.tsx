@@ -70,7 +70,7 @@ export function NoteEditor({
     <View style={styles.wrap}>
       <TextInput
         style={styles.input}
-        placeholder="Add a note for this trail..."
+        placeholder="Add a note for this trail…"
         placeholderTextColor={colors.muted}
         value={text}
         onChangeText={onChangeText}
@@ -78,7 +78,7 @@ export function NoteEditor({
         autoFocus={autoFocus}
         accessibilityLabel={`Note for ${trailName}`}
       />
-      {saveState === 'saving' ? <Text style={styles.status}>Saving...</Text> : null}
+      {saveState === 'saving' ? <Text style={styles.status}>Saving…</Text> : null}
       {saveState === 'saved' ? <Text style={styles.status}>Saved</Text> : null}
       {saveState === 'error' ? (
         <Text style={[styles.status, styles.error]}>
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.sm,
     marginTop: spacing.xs,
-    gap: 4,
+    gap: spacing.xs,
   },
   input: { ...typography.body, color: colors.text, minHeight: 44, textAlignVertical: 'top' },
   status: { ...typography.caption, color: colors.muted },

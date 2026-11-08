@@ -54,7 +54,7 @@ export default function CreateGroup() {
       // Back to the one running app, rather than stacking a second copy on top.
       router.dismissAll();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the hike.');
+      setError(err instanceof Error ? err.message : "Couldn't start the hike.");
       setCreating(false);
     }
   };
@@ -69,7 +69,7 @@ export default function CreateGroup() {
     try {
       await Linking.openURL(url);
     } catch {
-      setError('Could not open your maps app.');
+      setError("Couldn't open your maps app.");
     }
   };
 
@@ -92,7 +92,7 @@ export default function CreateGroup() {
 
   const create = async () => {
     if (!name.trim()) {
-      setError('Give your group a name.');
+      setError('Give your hike a name.');
       return;
     }
 
@@ -151,7 +151,7 @@ export default function CreateGroup() {
   return (
     <ScreenContainer style={styles.container}>
       <View style={styles.header}>
-        <Text style={typography.title}>New group</Text>
+        <Text style={typography.title}>New hike</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -163,7 +163,7 @@ export default function CreateGroup() {
       </View>
 
       <Field
-        label="Group name"
+        label="Hike name"
         icon="people-outline"
         placeholder="Sunrise crew"
         value={name}
@@ -202,9 +202,13 @@ export default function CreateGroup() {
         }}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
 
-      <Button label="Create group" icon="add" onPress={create} loading={creating} />
+      <Button label="Start hike" icon="play" onPress={create} loading={creating} />
     </ScreenContainer>
   );
 }
@@ -219,12 +223,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.ms,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.md,
   },
   rowPressed: { backgroundColor: colors.surfaceAlt },
-  rowText: { flex: 1, gap: 1 },
+  rowText: { flex: 1, gap: spacing.xxs },
   rowMeta: { ...typography.caption, color: colors.muted, textTransform: 'capitalize' },
   radio: {
     width: 22,

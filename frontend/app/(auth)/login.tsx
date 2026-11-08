@@ -104,13 +104,13 @@ export default function Login() {
               accessibilityRole="button"
               accessibilityLabel="Send a password reset email"
               style={styles.forgot}
-              hitSlop={8}
+              hitSlop={14}
               onPress={forgotPassword}
               disabled={resetState === 'sending'}
             >
               <Text style={styles.forgotText}>
                 {resetState === 'sending'
-                  ? 'Sending...'
+                  ? 'Sending…'
                   : resetState === 'sent'
                     ? 'Reset link sent'
                     : 'Forgot password?'}
@@ -124,7 +124,11 @@ export default function Login() {
             ) : null}
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          ) : null}
 
           <Button label="Log in" onPress={submit} loading={submitting} />
 
@@ -156,14 +160,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  head: { gap: 4 },
+  head: { gap: spacing.xs },
   sub: { ...typography.body, color: colors.muted },
   form: { gap: spacing.md },
   error: { ...typography.caption, color: colors.danger },
   forgot: { alignSelf: 'flex-end' },
   forgotText: { ...typography.caption, color: colors.primary },
   resetSent: { ...typography.caption, color: colors.muted, textAlign: 'right' },
-  footer: { flexDirection: 'row', justifyContent: 'center', gap: 5, alignItems: 'center' },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, alignItems: 'center' },
   footerText: { ...typography.caption, color: colors.muted },
-  link: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+  link: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    paddingVertical: spacing.ms,
+  },
 });

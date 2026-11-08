@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -82,6 +83,7 @@ export default function HikeSummary() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <Animated.View style={[StyleSheet.absoluteFill, gradientStyle]}>
         <LinearGradient colors={sunrise} style={StyleSheet.absoluteFill} />
       </Animated.View>
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
   statCard: {
     flexBasis: '47%',
     flexGrow: 1,
-    gap: 2,
+    gap: spacing.xxs,
     backgroundColor: hexWithAlpha(colors.surface, 0.16),
     borderWidth: 1,
     borderColor: hexWithAlpha(colors.surface, 0.3),

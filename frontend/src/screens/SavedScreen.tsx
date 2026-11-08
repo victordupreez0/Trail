@@ -141,7 +141,10 @@ export function SavedScreen() {
       />
 
       {pending ? (
-        <View style={[styles.snackbar, { bottom: spacing.lg + tabBarInset }]}>
+        <View
+          accessibilityLiveRegion="polite"
+          style={[styles.snackbar, { bottom: spacing.lg + tabBarInset }]}
+        >
           <Text style={styles.snackbarText} numberOfLines={1}>
             Removed {pending.name}
           </Text>
@@ -149,7 +152,7 @@ export function SavedScreen() {
             accessibilityRole="button"
             accessibilityLabel="Undo remove"
             onPress={undoRemove}
-            hitSlop={8}
+            hitSlop={14}
           >
             <Text style={styles.snackbarAction}>Undo</Text>
           </Pressable>
@@ -236,7 +239,7 @@ function SavedTrailRow({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   container: { paddingTop: spacing.sm, paddingBottom: spacing.xl },
-  header: { gap: 2, marginBottom: spacing.md },
+  header: { gap: spacing.xxs, marginBottom: spacing.md },
   sub: { ...typography.caption, color: colors.muted },
   error: { ...typography.caption, color: colors.danger, marginTop: spacing.xs },
   gap: { height: spacing.md },
@@ -276,7 +279,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.primaryDark,
     borderRadius: radius.lg,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.ms,
     paddingHorizontal: spacing.md,
     ...shadow.floating,
   },

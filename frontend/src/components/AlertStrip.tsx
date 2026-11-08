@@ -12,7 +12,8 @@ export function AlertStrip({ alerts }: { alerts: PartyAlert[] }) {
     <View style={styles.alerts} accessibilityLiveRegion="polite">
       {alerts.map((a) => {
         const danger = a.severity === 'danger';
-        const tint = danger ? colors.danger : colors.accent;
+        const iconTint = danger ? colors.danger : colors.accent;
+        const textTint = danger ? colors.dangerText : colors.accentText;
         return (
           <View
             key={a.key}
@@ -22,9 +23,9 @@ export function AlertStrip({ alerts }: { alerts: PartyAlert[] }) {
             <Ionicons
               name={danger ? 'battery-dead-outline' : 'time-outline'}
               size={16}
-              color={tint}
+              color={iconTint}
             />
-            <Text style={[styles.alertText, { color: tint }]}>{a.text}</Text>
+            <Text style={[styles.alertText, { color: textTint }]}>{a.text}</Text>
           </View>
         );
       })}
@@ -38,7 +39,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.sm + 2,
+    padding: spacing.ms,
     borderRadius: radius.md,
   },
   alertDanger: { backgroundColor: colors.dangerSoft },

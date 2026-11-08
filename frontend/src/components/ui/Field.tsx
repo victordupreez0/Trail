@@ -26,6 +26,7 @@ export function Field({ label, icon, style, ...props }: Props) {
           placeholderTextColor={colors.muted}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          accessibilityLabel={label}
           {...props}
         />
       </View>
@@ -34,7 +35,7 @@ export function Field({ label, icon, style, ...props }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
+  wrap: { gap: spacing.xs },
   label: { ...typography.caption, color: colors.muted },
   field: {
     flexDirection: 'row',

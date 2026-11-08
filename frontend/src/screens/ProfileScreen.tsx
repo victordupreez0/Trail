@@ -182,7 +182,7 @@ export function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel="Open photo settings"
               onPress={() => Linking.openSettings()}
-              hitSlop={8}
+              hitSlop={14}
             >
               <Text style={styles.permissionAction}>Settings</Text>
             </Pressable>
@@ -261,7 +261,7 @@ export function ProfileScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Open notification settings"
                 onPress={() => Linking.openSettings()}
-                hitSlop={8}
+                hitSlop={14}
               >
                 <Text style={styles.permissionAction}>Settings</Text>
               </Pressable>
@@ -375,7 +375,7 @@ function Row({
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
+  container: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.lg },
   head: { alignItems: 'center', gap: spacing.xs },
   email: { ...typography.caption, color: colors.muted },
   avatarBadge: {
@@ -421,17 +421,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.accentSoft,
-    padding: spacing.sm + 2,
+    padding: spacing.ms,
     borderRadius: radius.md,
   },
   permissionText: { ...typography.caption, color: colors.text, flex: 1 },
-  permissionAction: { ...typography.caption, color: colors.accent, fontWeight: '700' },
-  intervalRow: { gap: 6 },
+  permissionAction: { ...typography.caption, color: colors.accentText, fontWeight: '700' },
+  intervalRow: { gap: spacing.xs },
   intervalLabel: { ...typography.caption, color: colors.muted },
   pillRow: { flexDirection: 'row', gap: spacing.xs },
   pill: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.ms,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,

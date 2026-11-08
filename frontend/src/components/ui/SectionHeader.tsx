@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     gap: spacing.sm,
   },
-  text: { flex: 1, gap: 2 },
+  text: { flex: 1, gap: spacing.xxs },
   subtitle: { ...typography.caption, color: colors.muted },
 });

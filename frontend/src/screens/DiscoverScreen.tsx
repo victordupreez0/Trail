@@ -74,7 +74,7 @@ export function DiscoverScreen() {
               accessibilityRole="button"
               accessibilityLabel="Clear trail search"
               onPress={() => setSearch('')}
-              hitSlop={8}
+              hitSlop={14}
             >
               <Ionicons name="close-circle" size={18} color={colors.muted} />
             </Pressable>
@@ -133,7 +133,7 @@ export function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: spacing.sm, paddingBottom: spacing.md },
   header: { gap: spacing.xs },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   hintText: { ...typography.caption, color: colors.muted, flex: 1 },
   searchWrap: {
     flexDirection: 'row',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   suggestion: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   suggestionPressed: { backgroundColor: colors.surfaceAlt },
-  suggestionCopy: { flex: 1, gap: 2 },
+  suggestionCopy: { flex: 1, gap: spacing.xxs },
   suggestionMeta: { ...typography.caption, color: colors.muted },
   noResults: { padding: spacing.md },
 });

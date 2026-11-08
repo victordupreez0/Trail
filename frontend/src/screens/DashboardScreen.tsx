@@ -23,7 +23,7 @@ import {
   type PartyAlert,
 } from '../lib/party';
 import { useAppState, usePartyPositions } from '../state/AppState';
-import { colors, shadow } from '../theme/colors';
+import { colors, scrims, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
@@ -103,10 +103,7 @@ export function DashboardScreen() {
         >
           <View style={styles.hero}>
             <Image source={activeTrail.photo} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <LinearGradient
-              colors={['rgba(15,26,21,0.15)', 'rgba(15,26,21,0.85)']}
-              style={StyleSheet.absoluteFill}
-            />
+            <LinearGradient colors={scrims.hero} style={StyleSheet.absoluteFill} />
             <View style={styles.heroContent}>
               <View style={styles.liveTag}>
                 <View style={styles.liveDot} />
@@ -212,7 +209,7 @@ export function DashboardScreen() {
                       <Text style={typography.label}>{name}</Text>
                       <Text style={styles.partyMeta}>
                         {!pos
-                          ? 'Getting a fix...'
+                          ? 'Finding location…'
                           : (staleLabel ??
                             (pos.moving ? 'Moving · just now' : 'Stopped · just now'))}
                       </Text>
@@ -255,7 +252,7 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.lg },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  greeting: { flex: 1, gap: 2 },
+  greeting: { flex: 1, gap: spacing.xxs },
   eyebrow: {
     ...typography.caption,
     color: colors.muted,
@@ -270,35 +267,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     ...shadow.card,
   },
-  heroContent: { padding: spacing.md, gap: 5 },
+  heroContent: { padding: spacing.md, gap: spacing.xs },
   liveTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 4,
+    backgroundColor: colors.glassOnPhoto,
+    paddingHorizontal: spacing.ms,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
   },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#7BE0A6' },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.liveOnPhoto },
   liveText: { ...typography.caption, color: colors.surface },
   heroTitle: { ...typography.title, color: colors.surface },
-  heroMeta: { ...typography.caption, color: 'rgba(255,255,255,0.88)' },
+  heroMeta: { ...typography.caption, color: colors.onPhoto },
   restCard: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.lg },
   restBody: { ...typography.body, color: colors.muted, textAlign: 'center' },
   statRow: { flexDirection: 'row', gap: spacing.sm },
-  statCard: { flex: 1, gap: 5 },
-  statHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statCard: { flex: 1, gap: spacing.xs },
+  statHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   statLabel: { ...typography.caption, color: colors.muted },
   statFoot: { ...typography.caption, color: colors.muted },
-  statSkeleton: { width: 40, height: 26, marginVertical: 3 },
+  statSkeleton: { width: 40, height: 26, marginVertical: spacing.xxs },
   bottleRow: { alignItems: 'center' },
   partyCard: { gap: spacing.sm },
   partyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  partyText: { flex: 1, gap: 1 },
+  partyText: { flex: 1, gap: spacing.xxs },
   partyMeta: { ...typography.caption, color: colors.muted },
-  battery: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  battery: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

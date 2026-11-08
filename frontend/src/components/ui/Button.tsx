@@ -102,6 +102,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { ...typography.label, fontSize: 16 },
+  label: typography.button,
   inert: { opacity: 0.45 },
 });

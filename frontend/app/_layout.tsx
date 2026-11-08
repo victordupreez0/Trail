@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { configureNotificationHandler } from '../src/lib/reminders';
 import { AppStateProvider } from '../src/state/AppState';
+import { colors } from '../src/theme/colors';
 
 // Held open here rather than left to auto-hide, so app/index.tsx can keep it up
 // through the AsyncStorage onboarding read and Firebase's first auth callback.
@@ -30,13 +31,25 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AppStateProvider>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              // Stops a white flash behind screens as they change.
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="(app)/index" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
             <Stack.Screen name="group/create" options={{ presentation: 'modal' }} />
             <Stack.Screen name="group/join" options={{ presentation: 'modal' }} />
             <Stack.Screen name="admin" options={{ presentation: 'modal' }} />
             {/* Swiping back out of the ceremony would undercut "one button: Done,
                 nothing else." */}
-            <Stack.Screen name="hike/summary" options={{ gestureEnabled: false }} />
+            <Stack.Screen
+              name="hike/summary"
+              options={{ gestureEnabled: false, animation: 'fade' }}
+            />
           </Stack>
           <StatusBar style="auto" />
         </AppStateProvider>

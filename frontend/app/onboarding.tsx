@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import PagerView, { type PagerViewOnPageScrollEvent } from 'react-native-pager-view';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../src/components/ui/Button';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
@@ -50,6 +51,7 @@ export default function Onboarding() {
   const { completeOnboarding } = useAppState();
   const { reduced } = useMotion();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const pagerRef = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   // Continuous 0..slides.length-1 drag progress, not the discrete page index -
@@ -65,8 +67,15 @@ export default function Onboarding() {
   const ridgeWidth = width + RIDGE_MARGIN * 2;
 
   return (
-    <ScreenContainer style={styles.container} safeAreaStyle={styles.safeArea}>
-      <View style={styles.ridgeBand} pointerEvents="none">
+    <ScreenContainer style={styles.container}>
+      <View
+        style={[
+          styles.ridgeBand,
+          // Runs under the home indicator so the hills reach the true bottom of the screen.
+          { bottom: -insets.bottom, height: RIDGE_HEIGHT + insets.bottom },
+        ]}
+        pointerEvents="none"
+      >
         {RIDGES.map((ridge) => (
           <Ridge
             key={ridge.factor}
@@ -164,7 +173,6 @@ function Ridge({
 
 const styles = StyleSheet.create({
   container: { paddingBottom: spacing.lg, backgroundColor: colors.background },
-  safeArea: { backgroundColor: colors.primary },
   // Cancels ScreenContainer's own horizontal padding so the ridges reach the true
   // screen edges, then clips there - each layer's own Svg is wider still, so a shift
   // never reveals a hard edge inside that clipped band.
@@ -172,8 +180,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -spacing.lg,
     right: -spacing.lg,
-    bottom: 0,
-    height: RIDGE_HEIGHT,
     overflow: 'hidden',
   },
   ridgeLayer: { position: 'absolute', bottom: 0, left: -RIDGE_MARGIN },
@@ -183,7 +189,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: spacing.sm,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   brandText: { ...typography.label, color: colors.primaryDark, letterSpacing: 0.5 },
   skip: { ...typography.label, color: colors.muted },
   pager: { flex: 1 },
@@ -197,8 +203,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  title: { ...typography.display, fontSize: 38, lineHeight: 44 },
-  body: { ...typography.body, color: colors.muted, fontSize: 17, lineHeight: 26 },
+  title: typography.display,
+  body: { ...typography.body, color: colors.muted },
   footer: { gap: spacing.lg },
   dots: { flexDirection: 'row', gap: spacing.xs },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.muted },

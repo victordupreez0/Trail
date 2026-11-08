@@ -361,7 +361,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         if (!user) throw new Error('Sign in to join a hike.');
         if (activeGroup) throw new Error(ALREADY_ON_A_HIKE);
         const groupId = await findGroupByInviteCode(code.trim().toUpperCase());
-        if (!groupId) throw new Error('No hike found with that code');
+        if (!groupId) throw new Error('No hike found with that code.');
         await askForReminders();
         await joinGroup(groupId, user.uid);
       },

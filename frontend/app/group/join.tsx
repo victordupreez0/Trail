@@ -31,7 +31,7 @@ export default function JoinGroup() {
       showPartyTab();
       router.dismissAll();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not join that hike.');
+      setError(err instanceof Error ? err.message : "Couldn't join that hike.");
       setJoining(false);
     }
   };
@@ -39,7 +39,7 @@ export default function JoinGroup() {
   return (
     <ScreenContainer style={styles.container}>
       <View style={styles.header}>
-        <Text style={typography.title}>Join a group</Text>
+        <Text style={typography.title}>Join a hike</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -70,10 +70,14 @@ export default function JoinGroup() {
         onChangeText={setCode}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
 
       <View style={styles.spacer} />
-      <Button label="Join group" icon="enter-outline" onPress={join} loading={joining} />
+      <Button label="Join hike" icon="enter-outline" onPress={join} loading={joining} />
     </ScreenContainer>
   );
 }

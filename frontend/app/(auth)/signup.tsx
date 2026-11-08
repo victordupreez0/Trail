@@ -85,7 +85,11 @@ export default function Signup() {
             />
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          ) : null}
 
           <Button label="Create account" onPress={submit} loading={submitting} />
 
@@ -117,11 +121,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  head: { gap: 4 },
+  head: { gap: spacing.xs },
   sub: { ...typography.body, color: colors.muted },
   form: { gap: spacing.md },
   error: { ...typography.caption, color: colors.danger },
-  footer: { flexDirection: 'row', justifyContent: 'center', gap: 5, alignItems: 'center' },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, alignItems: 'center' },
   footerText: { ...typography.caption, color: colors.muted },
-  link: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+  link: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    paddingVertical: spacing.ms,
+  },
 });

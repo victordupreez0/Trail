@@ -113,7 +113,7 @@ export function HydrationBottle() {
     setOptimisticMl(waterMl + LOG_ML);
     logWater(LOG_ML).catch(() => {
       setOptimisticMl(null);
-      setError('Could not log water. Try again.');
+      setError("Couldn't log water. Try again.");
     });
   };
 
@@ -209,7 +209,7 @@ export function HydrationBottle() {
         onClose={() => setGoalOpen(false)}
         onSelect={(ml) => {
           haptics.light();
-          setHydrationGoal(ml).catch(() => setError('Could not update your goal. Try again.'));
+          setHydrationGoal(ml).catch(() => setError("Couldn't update your goal. Try again."));
           setGoalOpen(false);
         }}
       />
@@ -281,13 +281,13 @@ const styles = StyleSheet.create({
     borderRadius: RIPPLE_SIZE / 2,
     backgroundColor: hexWithAlpha(colors.surface, 0.35),
   },
-  readout: { alignItems: 'center', gap: 2 },
+  readout: { alignItems: 'center', gap: spacing.xxs },
   goalLine: { ...typography.caption },
-  goalMet: { ...typography.caption, fontWeight: '700', marginTop: 2 },
+  goalMet: { ...typography.caption, fontWeight: '700', marginTop: spacing.xxs },
   error: { ...typography.caption, color: colors.danger },
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15,26,21,0.35)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {

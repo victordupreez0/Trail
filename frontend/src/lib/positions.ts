@@ -30,6 +30,7 @@ export async function writePosition(
 export function subscribeToPositions(
   groupId: string,
   cb: (positions: Record<string, PartyPosition>) => void,
+  onError: () => void,
 ): Unsubscribe {
   return onSnapshot(
     collection(db, 'groups', groupId, 'positions'),
@@ -38,6 +39,9 @@ export function subscribeToPositions(
       for (const d of snap.docs) positions[d.id] = d.data() as PartyPosition;
       cb(positions);
     },
-    (err) => console.warn('subscribeToPositions failed', err),
+    (err) => {
+      console.warn('subscribeToPositions failed', err);
+      onError();
+    },
   );
 }

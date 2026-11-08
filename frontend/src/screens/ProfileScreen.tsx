@@ -25,15 +25,25 @@ import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-const WATER_INTERVAL_OPTIONS = [20, 30, 45, 60];
+// The 1 minute option is for rehearsing and demoing: nobody can wait 20 minutes on
+// stage to see a reminder arrive. __DEV__ keeps it out of a production build.
+const WATER_INTERVAL_OPTIONS = __DEV__ ? [1, 20, 30, 45, 60] : [20, 30, 45, 60];
 const REST_INTERVAL_OPTIONS = [60, 90, 120];
 // Matches ensureUserDoc's own default (src/lib/userDoc.ts); only used for the
 // instant between sign-in and the user doc's first snapshot arriving.
 const DEFAULT_HYDRATION_GOAL_ML = 2000;
 
 export function ProfileScreen() {
-  const { user, logout, savedTrailIds, userDoc, setReminderSettings, isAdmin, trails } =
-    useAppState();
+  const {
+    user,
+    logout,
+    savedTrailIds,
+    userDoc,
+    setReminderSettings,
+    isAdmin,
+    trails,
+    replayOnboarding,
+  } = useAppState();
   const tabBarInset = useTabBarInset();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
@@ -60,7 +70,6 @@ export function ProfileScreen() {
     setLoggingOut(true);
     try {
       await logout();
-      router.replace('/(auth)/login');
     } catch {
       setLogoutError("Couldn't log out. Try again.");
     } finally {
@@ -220,6 +229,16 @@ export function ProfileScreen() {
           value="Tips & sharing"
           onPress={() => router.push('/safety')}
         />
+        <View style={styles.divider} />
+        <Row
+          icon="albums-outline"
+          label="Intro"
+          value="Show again"
+          onPress={() => {
+            replayOnboarding();
+            router.replace('/onboarding');
+          }}
+        />
       </Card>
 
       <View>
@@ -317,7 +336,7 @@ function IntervalPicker({
             key={opt}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`${opt} minutes`}
+            accessibilityLabel={`${opt} ${opt === 1 ? 'minute' : 'minutes'}`}
             onPress={() => onChange(opt)}
             hitSlop={8}
             style={[styles.pill, active && styles.pillActive]}

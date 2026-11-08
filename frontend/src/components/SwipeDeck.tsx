@@ -1,17 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   interpolate,
   runOnJS,
+  runOnUI,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import type { Trail } from '../data/trails';
+import { useMotion } from '../hooks/useMotion';
 import { haptics } from '../lib/haptics';
 import { decideSwipe, SWIPE_THRESHOLD, type SwipeDecision } from '../lib/swipe';
 import { colors, shadow } from '../theme/colors';
@@ -23,99 +27,26 @@ import { EmptyState } from './ui/EmptyState';
 export type { SwipeDecision };
 
 const OFF_SCREEN = 900;
+const CARD_HEIGHT = 340;
+const FLY_OFF_MS = 220;
+
+type Fling = (decision: SwipeDecision) => void;
 
 export function SwipeDeck({
   data,
   onDecision,
   onPressCard,
+  onStartOver,
 }: {
   data: Trail[];
   onDecision: (trail: Trail, decision: SwipeDecision) => void;
-  onPressCard?: (trail: Trail) => void;
+  onPressCard: (trail: Trail) => void;
+  onStartOver?: () => void;
 }) {
-  const [index, setIndex] = useState(0);
-  const translateY = useSharedValue(0);
-
-  const current = data[index];
-  const next = data[index + 1];
-
-  const advance = (decision: SwipeDecision) => {
-    if (current) onDecision(current, decision);
-    translateY.value = 0;
-    setIndex((i) => i + 1);
-  };
-
-  // A save/skip is a committed decision, not a lightweight tap.
-  const buzz = () => haptics.medium();
-
-  // Also driven by the buttons below, so the two paths can't drift apart.
-  const fling = (decision: SwipeDecision) => {
-    buzz();
-    translateY.value = withTiming(
-      decision === 'save' ? -OFF_SCREEN : OFF_SCREEN,
-      { duration: 240 },
-      (finished) => {
-        'worklet';
-        if (finished) runOnJS(advance)(decision);
-      },
-    );
-  };
-
-  const pan = Gesture.Pan()
-    // Let horizontal drags fall through to the PagerView underneath, so swiping
-    // between screens still works while a card is on top.
-    .activeOffsetY([-12, 12])
-    .failOffsetX([-24, 24])
-    .onUpdate((e) => {
-      translateY.value = e.translationY;
-    })
-    .onEnd((e) => {
-      const decision = decideSwipe(e.translationY);
-      if (decision) {
-        runOnJS(buzz)();
-        translateY.value = withTiming(
-          decision === 'save' ? -OFF_SCREEN : OFF_SCREEN,
-          { duration: 200 },
-          (finished) => {
-            'worklet';
-            if (finished) runOnJS(advance)(decision);
-          },
-        );
-      } else {
-        translateY.value = withSpring(0, { damping: 18 });
-      }
-    });
-
-  const tap = Gesture.Tap()
-    .maxDistance(10)
-    .onEnd(() => {
-      if (onPressCard && current) runOnJS(onPressCard)(current);
-    });
-
-  const gesture = Gesture.Exclusive(pan, tap);
-
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: translateY.value },
-      { rotate: `${interpolate(translateY.value, [-300, 0, 300], [-6, 0, 6])}deg` },
-    ],
-  }));
-
-  const saveBadge = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [-SWIPE_THRESHOLD, -20, 0], [1, 0, 0], 'clamp'),
-  }));
-
-  const skipBadge = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [0, 20, SWIPE_THRESHOLD], [0, 0, 1], 'clamp'),
-  }));
-
-  const behindStyle = useAnimatedStyle(() => {
-    const progress = interpolate(Math.abs(translateY.value), [0, SWIPE_THRESHOLD], [0, 1], 'clamp');
-    return {
-      transform: [{ scale: 0.94 + progress * 0.06 }],
-      opacity: 0.55 + progress * 0.45,
-    };
-  });
+  // How far the top card has been dragged, which is what eases the next card forward.
+  const dragY = useSharedValue(0);
+  const flingTop = useRef<Fling>(() => {});
+  const [current, next] = data;
 
   if (!current) {
     return (
@@ -123,6 +54,9 @@ export function SwipeDeck({
         title="That's every trail"
         body="You've been through the whole list. Check Saved for the ones you kept."
         icon="checkmark-done-outline"
+        action={
+          onStartOver ? { label: 'See skipped trails again', onPress: onStartOver } : undefined
+        }
       />
     );
   }
@@ -130,25 +64,19 @@ export function SwipeDeck({
   return (
     <View style={styles.wrapper}>
       <View style={styles.stack}>
-        {next ? (
-          <Animated.View style={[styles.cardSlot, behindStyle]} pointerEvents="none">
-            <TrailCard key={next.id} trail={next} height={340} />
-          </Animated.View>
-        ) : null}
-
-        <GestureDetector gesture={gesture}>
-          <Animated.View style={[styles.cardSlot, cardStyle]}>
-            <TrailCard key={current.id} trail={current} height={340} />
-            <Animated.View style={[styles.badge, styles.saveBadge, saveBadge]}>
-              <Ionicons name="bookmark" size={16} color={colors.surface} />
-              <Text style={styles.badgeText}>Save</Text>
-            </Animated.View>
-            <Animated.View style={[styles.badge, styles.skipBadge, skipBadge]}>
-              <Ionicons name="close" size={16} color={colors.surface} />
-              <Text style={styles.badgeText}>Skip</Text>
-            </Animated.View>
-          </Animated.View>
-        </GestureDetector>
+        {/* Keyed by trail, so the card behind becomes the top card without remounting
+            and its photo never has to load twice. */}
+        {(next ? [next, current] : [current]).map((trail) => (
+          <DeckCard
+            key={trail.id}
+            trail={trail}
+            isTop={trail.id === current.id}
+            dragY={dragY}
+            flingRef={flingTop}
+            onDecision={onDecision}
+            onPress={onPressCard}
+          />
+        ))}
       </View>
 
       {/* Gesture-first is the constraint, but the actions still need a visible,
@@ -157,7 +85,7 @@ export function SwipeDeck({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Skip this trail"
-          onPress={() => fling('skip')}
+          onPress={() => flingTop.current('skip')}
           style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
         >
           <Ionicons name="close" size={26} color={colors.muted} />
@@ -165,7 +93,7 @@ export function SwipeDeck({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Save this trail"
-          onPress={() => fling('save')}
+          onPress={() => flingTop.current('save')}
           style={({ pressed }) => [
             styles.action,
             styles.actionPrimary,
@@ -177,15 +105,142 @@ export function SwipeDeck({
       </View>
 
       <Text style={styles.counter}>
-        {index + 1} of {data.length}
+        {data.length} {data.length === 1 ? 'trail' : 'trails'} left
       </Text>
     </View>
   );
 }
 
+function DeckCard({
+  trail,
+  isTop,
+  dragY,
+  flingRef,
+  onDecision,
+  onPress,
+}: {
+  trail: Trail;
+  isTop: boolean;
+  dragY: SharedValue<number>;
+  flingRef: RefObject<Fling>;
+  onDecision: (trail: Trail, decision: SwipeDecision) => void;
+  onPress: (trail: Trail) => void;
+}) {
+  const { reduced } = useMotion();
+  // Each card owns its offset. Sharing one would mean resetting it between cards,
+  // and that reset is what used to flash the old card back into the middle.
+  const y = useSharedValue(0);
+  const flying = useSharedValue(false);
+
+  useAnimatedReaction(
+    () => y.value,
+    (value) => {
+      if (isTop) dragY.value = value;
+    },
+    [isTop],
+  );
+
+  const commit = (decision: SwipeDecision) => onDecision(trail, decision);
+  const openCard = () => onPress(trail);
+  // A save/skip is a committed decision, not a lightweight tap.
+  const buzz = () => haptics.medium();
+
+  // Shared by the swipe and the buttons, so the two paths can't drift apart.
+  const flyOff = (decision: SwipeDecision) => {
+    'worklet';
+    if (flying.value) return;
+    flying.value = true;
+    runOnJS(buzz)();
+    y.value = withTiming(
+      decision === 'save' ? -OFF_SCREEN : OFF_SCREEN,
+      { duration: reduced ? 0 : FLY_OFF_MS },
+      (finished) => {
+        'worklet';
+        if (finished) runOnJS(commit)(decision);
+      },
+    );
+  };
+
+  useEffect(() => {
+    if (isTop) flingRef.current = (decision) => runOnUI(flyOff)(decision);
+  });
+
+  const pan = Gesture.Pan()
+    .enabled(isTop)
+    // Let horizontal drags fall through to the PagerView underneath, so swiping
+    // between screens still works while a card is on top.
+    .activeOffsetY([-12, 12])
+    .failOffsetX([-24, 24])
+    .onUpdate((e) => {
+      if (!flying.value) y.value = e.translationY;
+    })
+    .onEnd((e) => {
+      if (flying.value) return;
+      const decision = decideSwipe(e.translationY);
+      if (decision) flyOff(decision);
+      else y.value = withSpring(0, { damping: 18 });
+    });
+
+  const tap = Gesture.Tap()
+    .enabled(isTop)
+    .maxDistance(10)
+    .onEnd((_e, success) => {
+      if (success) runOnJS(openCard)();
+    });
+
+  const cardStyle = useAnimatedStyle(() => {
+    if (isTop) {
+      return {
+        opacity: 1,
+        transform: [
+          { translateY: y.value },
+          { rotate: `${interpolate(y.value, [-300, 0, 300], [-6, 0, 6])}deg` },
+          { scale: 1 },
+        ],
+      };
+    }
+    const progress = interpolate(Math.abs(dragY.value), [0, SWIPE_THRESHOLD], [0, 1], 'clamp');
+    return {
+      opacity: 0.55 + progress * 0.45,
+      transform: [{ translateY: 0 }, { rotate: '0deg' }, { scale: 0.94 + progress * 0.06 }],
+    };
+  }, [isTop]);
+
+  const saveBadge = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [-SWIPE_THRESHOLD, -20, 0], [1, 0, 0], 'clamp'),
+  }));
+
+  const skipBadge = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [0, 20, SWIPE_THRESHOLD], [0, 0, 1], 'clamp'),
+  }));
+
+  return (
+    <GestureDetector gesture={Gesture.Exclusive(pan, tap)}>
+      <Animated.View
+        style={[styles.cardSlot, cardStyle]}
+        pointerEvents={isTop ? 'auto' : 'none'}
+        accessible={isTop}
+        accessibilityRole="button"
+        accessibilityLabel={`${trail.name}. Open trail details.`}
+        onAccessibilityTap={openCard}
+      >
+        <TrailCard trail={trail} height={CARD_HEIGHT} />
+        <Animated.View style={[styles.badge, styles.saveBadge, saveBadge]}>
+          <Ionicons name="bookmark" size={16} color={colors.surface} />
+          <Text style={styles.badgeText}>Save</Text>
+        </Animated.View>
+        <Animated.View style={[styles.badge, styles.skipBadge, skipBadge]}>
+          <Ionicons name="close" size={16} color={colors.surface} />
+          <Text style={styles.badgeText}>Skip</Text>
+        </Animated.View>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
 const styles = StyleSheet.create({
   wrapper: { flex: 1, justifyContent: 'center' },
-  stack: { height: 340, justifyContent: 'center' },
+  stack: { height: CARD_HEIGHT, justifyContent: 'center' },
   cardSlot: { ...StyleSheet.absoluteFillObject },
   badge: {
     position: 'absolute',

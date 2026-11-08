@@ -59,7 +59,7 @@ export default function Onboarding() {
 
   const finish = () => {
     completeOnboarding();
-    router.replace('/(auth)/login');
+    router.replace('/(app)');
   };
 
   const ridgeWidth = width + RIDGE_MARGIN * 2;

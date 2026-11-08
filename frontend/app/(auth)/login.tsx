@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -38,7 +38,6 @@ export default function Login() {
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
-      router.replace('/(app)');
     } catch (err) {
       setError(authMessage(err));
     } finally {

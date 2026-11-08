@@ -4,26 +4,44 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SwipeDeck, type SwipeDecision } from '../components/SwipeDeck';
+import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
 import { useTabBarInset } from '../hooks/useTabBarInset';
+import { undecidedTrails } from '../lib/swipe';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 export function DiscoverScreen() {
-  const { savedTrailIds, toggleSaved, trails } = useAppState();
+  const { savedTrailIds, savedTrailsLoading, setTrailSaved, trails } = useAppState();
   const tabBarInset = useTabBarInset();
   const [search, setSearch] = useState('');
+  // Lives here rather than in the deck so it survives a search, and so a card leaves
+  // the moment it's swiped instead of waiting for the save to come back.
+  const [decided, setDecided] = useState<ReadonlySet<string>>(new Set());
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const deck = useMemo(
-    () => trails.filter((t) => !savedTrailIds.includes(t.id)),
-    [savedTrailIds, trails],
+    () => undecidedTrails(trails, savedTrailIds, decided),
+    [trails, savedTrailIds, decided],
   );
+  const hasSkipped = trails.some((t) => decided.has(t.id) && !savedTrailIds.includes(t.id));
 
   const handleDecision = (trail: Trail, decision: SwipeDecision) => {
-    if (decision === 'save') toggleSaved(trail.id);
+    setDecided((prev) => new Set(prev).add(trail.id));
+    if (decision !== 'save') return;
+    setSaveError(null);
+    setTrailSaved(trail.id, true).catch(() => {
+      setDecided((prev) => {
+        const next = new Set(prev);
+        next.delete(trail.id);
+        return next;
+      });
+      setSaveError(`Couldn't save ${trail.name}. Check your connection and try again.`);
+    });
   };
+
   const suggestions = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return [];
@@ -62,6 +80,7 @@ export function DiscoverScreen() {
             </Pressable>
           ) : null}
         </View>
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
       </View>
 
       {search ? (
@@ -93,11 +112,18 @@ export function DiscoverScreen() {
             </View>
           )}
         </View>
+      ) : savedTrailsLoading ? (
+        // Waits for the saved list, otherwise trails you've already saved appear
+        // briefly and then vanish from under your thumb.
+        <View style={styles.loading}>
+          <Skeleton style={styles.loadingCard} />
+        </View>
       ) : (
         <SwipeDeck
           data={deck}
           onDecision={handleDecision}
           onPressCard={(trail) => router.push(`/trail/${trail.id}`)}
+          onStartOver={hasSkipped ? () => setDecided(new Set()) : undefined}
         />
       )}
     </View>
@@ -121,6 +147,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
   },
   search: { flex: 1, ...typography.body, color: colors.text, paddingVertical: 0 },
+  error: { ...typography.caption, color: colors.danger },
+  loading: { flex: 1, justifyContent: 'center' },
+  loadingCard: { height: 340, borderRadius: radius.xl },
   dropdown: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,

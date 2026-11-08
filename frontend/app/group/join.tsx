@@ -13,7 +13,7 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
 export default function JoinGroup() {
-  const { joinByCode } = useAppState();
+  const { joinByCode, showPartyTab } = useAppState();
   const [code, setCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,8 @@ export default function JoinGroup() {
     try {
       await joinByCode(code.trim());
       haptics.medium();
-      router.replace('/(app)?tab=groups');
+      showPartyTab();
+      router.dismissAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not join that hike.');
       setJoining(false);

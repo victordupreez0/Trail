@@ -1,20 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { NoteEditor } from '../../src/components/NoteEditor';
 import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
 import { GlassSurface } from '../../src/components/ui/GlassSurface';
@@ -23,29 +23,13 @@ import { colors, shadow } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
-const NOTE_DEBOUNCE_MS = 600;
-
 export default function TrailDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isSaved, toggleSaved, savedTrailMeta, updateSavedTrailNote, trails } = useAppState();
+  const { isSaved, setTrailSaved, savedTrailMeta, activeGroup, showPartyTab, trails } =
+    useAppState();
   const trail = trails.find((t) => t.id === id);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-
-  // Hooks run before the not-found early return below, so they stay unconditional
-  // regardless of whether `trail` resolves.
-  const savedNote = trail ? (savedTrailMeta[trail.id]?.notes ?? '') : '';
-  const [noteText, setNoteText] = useState(savedNote);
-  const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const noteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => setNoteText(savedNote), [savedNote]);
-  useEffect(
-    () => () => {
-      if (noteDebounce.current) clearTimeout(noteDebounce.current);
-    },
-    [],
-  );
 
   if (!trail) {
     return (
@@ -58,21 +42,29 @@ export default function TrailDetail() {
 
   const saved = isSaved(trail.id);
 
-  const onChangeNote = (next: string) => {
-    setNoteText(next);
-    setNoteSaveState('idle');
-    if (noteDebounce.current) clearTimeout(noteDebounce.current);
-    noteDebounce.current = setTimeout(() => {
-      setNoteSaveState('saving');
-      updateSavedTrailNote(trail.id, next)
-        .then(() => setNoteSaveState('saved'))
-        .catch(() => setNoteSaveState('error'));
-    }, NOTE_DEBOUNCE_MS);
+  const toggleSaved = () => {
+    setTrailSaved(trail.id, !saved).catch(() =>
+      Alert.alert("Couldn't update this trail", 'Check your connection and try again.'),
+    );
+  };
+
+  const startOrResume = () => {
+    if (!activeGroup) {
+      router.push(`/group/create?trailId=${trail.id}`);
+      return;
+    }
+    showPartyTab();
+    router.dismissAll();
   };
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.heroWrap}>
           <Image source={trail.photo} style={styles.hero} resizeMode="cover" />
           <LinearGradient
@@ -124,26 +116,11 @@ export default function TrailDetail() {
           {saved ? (
             <View style={styles.noteSection}>
               <Text style={styles.sectionTitle}>Your note</Text>
-              <View style={styles.noteWrap}>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder="Add a note for this trail..."
-                  placeholderTextColor={colors.muted}
-                  value={noteText}
-                  onChangeText={onChangeNote}
-                  multiline
-                  accessibilityLabel={`Note for ${trail.name}`}
-                />
-                {noteSaveState === 'saving' ? (
-                  <Text style={styles.noteStatus}>Saving...</Text>
-                ) : null}
-                {noteSaveState === 'saved' ? <Text style={styles.noteStatus}>Saved</Text> : null}
-                {noteSaveState === 'error' ? (
-                  <Text style={[styles.noteStatus, styles.noteError]}>
-                    Couldn&apos;t save. Try again.
-                  </Text>
-                ) : null}
-              </View>
+              <NoteEditor
+                trailId={trail.id}
+                trailName={trail.name}
+                note={savedTrailMeta[trail.id]?.notes ?? ''}
+              />
             </View>
           ) : null}
 
@@ -180,7 +157,7 @@ export default function TrailDetail() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={saved ? 'Remove from saved' : 'Save trail'}
-          onPress={() => toggleSaved(trail.id)}
+          onPress={toggleSaved}
           style={({ pressed }) => [styles.saveBtn, pressed && styles.pressed]}
         >
           <Ionicons
@@ -191,9 +168,9 @@ export default function TrailDetail() {
         </Pressable>
         <View style={styles.startBtn}>
           <Button
-            label="Start hike"
-            icon="play"
-            onPress={() => router.push(`/group/create?trailId=${trail.id}`)}
+            label={activeGroup ? 'Go to your hike' : 'Start hike'}
+            icon={activeGroup ? 'people' : 'play'}
+            onPress={startOrResume}
           />
         </View>
       </View>
@@ -257,16 +234,6 @@ const styles = StyleSheet.create({
   description: { ...typography.body, marginTop: spacing.sm },
   sectionTitle: { ...typography.heading, marginTop: spacing.md },
   noteSection: { marginTop: -spacing.sm },
-  noteWrap: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.xs,
-    gap: 4,
-  },
-  noteInput: { ...typography.body, color: colors.text, minHeight: 44, textAlignVertical: 'top' },
-  noteStatus: { ...typography.caption, color: colors.muted },
-  noteError: { color: colors.danger },
   mapWrap: {
     height: 200,
     borderRadius: radius.lg,

@@ -10,12 +10,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
+import { NoteEditor } from '../components/NoteEditor';
 import { TrailCard } from '../components/TrailCard';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -31,11 +31,10 @@ import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-const NOTE_DEBOUNCE_MS = 600;
 const UNDO_WINDOW_MS = 4000;
 
 export function SavedScreen() {
-  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, toggleSaved, trails, user } =
+  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, setTrailSaved, trails, user } =
     useAppState();
   const tabBarInset = useTabBarInset();
   const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
@@ -65,7 +64,7 @@ export function SavedScreen() {
     if (pendingTimer.current) clearTimeout(pendingTimer.current);
     setPending({ trailId: trail.id, name: trail.name });
     pendingTimer.current = setTimeout(() => {
-      toggleSaved(trail.id);
+      setTrailSaved(trail.id, false).catch((err) => console.warn('remove failed', err));
       setPending(null);
     }, UNDO_WINDOW_MS);
   };
@@ -123,6 +122,8 @@ export function SavedScreen() {
         data={saved}
         keyExtractor={(t) => t.id}
         showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarInset }]}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -268,32 +269,8 @@ function SavedTrailRow({
   note: string;
   onRemove: () => void;
 }) {
-  const { updateSavedTrailNote } = useAppState();
   const { reduced } = useMotion();
   const [noteOpen, setNoteOpen] = useState(false);
-  const [text, setText] = useState(note);
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => setText(note), [note]);
-  useEffect(
-    () => () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    },
-    [],
-  );
-
-  const onChangeText = (next: string) => {
-    setText(next);
-    setSaveState('idle');
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setSaveState('saving');
-      updateSavedTrailNote(trail.id, next)
-        .then(() => setSaveState('saved'))
-        .catch(() => setSaveState('error'));
-    }, NOTE_DEBOUNCE_MS);
-  };
 
   return (
     <Animated.View
@@ -330,7 +307,7 @@ function SavedTrailRow({
             onPress={() => setNoteOpen((v) => !v)}
           >
             <Ionicons
-              name={text ? 'document-text' : 'create-outline'}
+              name={note ? 'document-text' : 'create-outline'}
               size={16}
               color={colors.text}
             />
@@ -338,24 +315,7 @@ function SavedTrailRow({
         </Pressable>
 
         {noteOpen ? (
-          <View style={styles.noteWrap}>
-            <TextInput
-              style={styles.noteInput}
-              placeholder="Add a note for this trail..."
-              placeholderTextColor={colors.muted}
-              value={text}
-              onChangeText={onChangeText}
-              multiline
-              accessibilityLabel={`Note for ${trail.name}`}
-            />
-            {saveState === 'saving' ? <Text style={styles.noteStatus}>Saving...</Text> : null}
-            {saveState === 'saved' ? <Text style={styles.noteStatus}>Saved</Text> : null}
-            {saveState === 'error' ? (
-              <Text style={[styles.noteStatus, styles.noteError]}>
-                Couldn&apos;t save. Try again.
-              </Text>
-            ) : null}
-          </View>
+          <NoteEditor trailId={trail.id} trailName={trail.name} note={note} autoFocus />
         ) : null}
       </Swipeable>
     </Animated.View>
@@ -391,15 +351,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noteWrap: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.xs,
-    gap: 4,
-  },
-  noteInput: { ...typography.body, color: colors.text, minHeight: 40, textAlignVertical: 'top' },
-  noteStatus: { ...typography.caption, color: colors.muted },
   noteError: { color: colors.danger },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,26,21,0.42)' },
   modalSheet: {

@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -15,6 +16,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Once, at module scope, same as the splash hold above: decides whether a
 // notification that arrives while the app is in the foreground gets shown at all.
 configureNotificationHandler();
+
+// expo-notifications warns about push notifications in Expo Go on every launch.
+// Trail only schedules local reminders, which Expo Go does support, so these two
+// messages are noise here rather than something to act on.
+LogBox.ignoreLogs([
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+  'expo-notifications: Android Push notifications',
+]);
 
 export default function RootLayout() {
   return (

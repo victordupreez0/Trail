@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 // Fixed identifiers rather than tracked ids: there's only ever one water and one
 // rest reminder active at a time, so scheduling reuses the same identifier (Android
@@ -6,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 // is just "cancel this exact identifier", no bookkeeping needed.
 const WATER_ID = 'trail-water-reminder';
 const REST_ID = 'trail-rest-reminder';
+const CHANNEL_ID = 'hike-reminders';
 
 // Calm, specific copy, never a shouted "REMINDER:" prefix - the app's whole point is
 // not adding to the noise of a hike.
@@ -16,17 +18,32 @@ function pick(messages: string[]): string {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
+// Android 13+ won't show the permission prompt until a channel exists.
+async function ensureChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+    name: 'Hike reminders',
+    importance: Notifications.AndroidImportance.DEFAULT,
+  });
+}
+
 export async function requestPermission(): Promise<boolean> {
+  await ensureChannel();
   const existing = await Notifications.getPermissionsAsync();
   if (existing.granted) return true;
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
 }
 
+export async function hasPermission(): Promise<boolean> {
+  return (await Notifications.getPermissionsAsync()).granted;
+}
+
 export async function scheduleHikeReminders(
   waterIntervalMinutes: number,
   restIntervalMinutes: number,
 ): Promise<void> {
+  await ensureChannel();
   await Notifications.scheduleNotificationAsync({
     identifier: WATER_ID,
     content: { title: 'Trail', body: pick(WATER_MESSAGES) },
@@ -34,6 +51,7 @@ export async function scheduleHikeReminders(
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: waterIntervalMinutes * 60,
       repeats: true,
+      channelId: CHANNEL_ID,
     },
   });
   await Notifications.scheduleNotificationAsync({
@@ -43,6 +61,7 @@ export async function scheduleHikeReminders(
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: restIntervalMinutes * 60,
       repeats: true,
+      channelId: CHANNEL_ID,
     },
   });
 }

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AlertStrip } from '../components/AlertStrip';
 import { Avatar } from '../components/Avatar';
 import { CountUp } from '../components/CountUp';
 import { HydrationBottle } from '../components/HydrationBottle';
@@ -12,39 +13,39 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { fillRatio, todayKey, waterToday } from '../lib/hydration';
-import { initialsOf, lastSeenLabel, memberColor } from '../lib/party';
-import { useAppState } from '../state/AppState';
+import {
+  initialsOf,
+  lastSeenLabel,
+  memberColor,
+  PARTY_TICK_MS,
+  partyAlerts,
+  type PartyAlert,
+} from '../lib/party';
+import { useAppState, usePartyPositions } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-// Alerts and "last seen" copy are only as fresh as the last render; on an otherwise
-// idle dashboard nothing re-renders on its own, so this re-evaluates them every 30s
-// (same landmine P2's GroupsScreen has, at a slower cadence since it's less urgent here).
-const TICK_MS = 30_000;
-const STALE_CHECKIN_MIN = 5;
-const LOW_BATTERY = 0.15;
 const HYDRATION_BEHIND_HOURS = 2;
 const HYDRATION_BEHIND_PCT = 0.4;
-
-type Alert = { key: string; severity: 'danger' | 'warning'; text: string };
 
 export function DashboardScreen() {
   const {
     user,
     activeGroup,
     groupLoading,
-    partyPositions,
     savedTrailIds,
     savedTrailMeta,
     userDoc,
     trails,
+    remindersBlocked,
   } = useAppState();
+  const partyPositions = usePartyPositions();
   const tabBarInset = useTabBarInset();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), TICK_MS);
+    const id = setInterval(() => setNow(Date.now()), PARTY_TICK_MS);
     return () => clearInterval(id);
   }, []);
 
@@ -88,26 +89,15 @@ export function DashboardScreen() {
   }
   const recentEvents = events.sort((a, b) => b.atMs - a.atMs).slice(0, 3);
 
-  const alerts: Alert[] = [];
+  const alerts: PartyAlert[] = [];
   if (activeGroup && user) {
-    for (const [uid, pos] of Object.entries(partyPositions)) {
-      if (uid === user.uid) continue;
-      const updatedAtMs = pos.updatedAt ? pos.updatedAt.toMillis() : null;
-      const ageMin = updatedAtMs !== null ? (now - updatedAtMs) / 60_000 : 0;
-      if (ageMin > STALE_CHECKIN_MIN) {
-        alerts.push({
-          key: `stale-${uid}`,
-          severity: 'warning',
-          text: `${pos.displayName} hasn't checked in for ${Math.round(ageMin)} minutes`,
-        });
-      }
-      if (pos.batteryLevel < LOW_BATTERY) {
-        alerts.push({
-          key: `battery-${uid}`,
-          severity: 'danger',
-          text: `${pos.displayName}'s battery is at ${Math.round(pos.batteryLevel * 100)}%`,
-        });
-      }
+    alerts.push(...partyAlerts(partyPositions, user.uid, now));
+    if (remindersBlocked) {
+      alerts.push({
+        key: 'reminders-blocked',
+        severity: 'warning',
+        text: "Notifications are off, so water reminders won't arrive",
+      });
     }
     if (activeGroup.startedAt) {
       const hoursIn = (now - activeGroup.startedAt.toMillis()) / 3_600_000;
@@ -165,33 +155,7 @@ export function DashboardScreen() {
         </Card>
       )}
 
-      {alerts.length > 0 ? (
-        <View style={styles.alerts}>
-          {alerts.map((a) => (
-            <View
-              key={a.key}
-              style={[
-                styles.alert,
-                a.severity === 'danger' ? styles.alertDanger : styles.alertWarning,
-              ]}
-            >
-              <Ionicons
-                name={a.severity === 'danger' ? 'battery-dead-outline' : 'time-outline'}
-                size={16}
-                color={a.severity === 'danger' ? colors.danger : colors.accent}
-              />
-              <Text
-                style={[
-                  styles.alertText,
-                  { color: a.severity === 'danger' ? colors.danger : colors.accent },
-                ]}
-              >
-                {a.text}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      <AlertStrip alerts={alerts} />
 
       {activeGroup ? (
         <View style={styles.statRow}>
@@ -363,17 +327,6 @@ const styles = StyleSheet.create({
   heroMeta: { ...typography.caption, color: 'rgba(255,255,255,0.88)' },
   restCard: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.lg },
   restBody: { ...typography.body, color: colors.muted, textAlign: 'center' },
-  alerts: { gap: spacing.xs },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.sm + 2,
-    borderRadius: radius.md,
-  },
-  alertDanger: { backgroundColor: colors.dangerSoft },
-  alertWarning: { backgroundColor: colors.accentSoft },
-  alertText: { ...typography.caption, flex: 1 },
   statRow: { flexDirection: 'row', gap: spacing.sm },
   statCard: { flex: 1, gap: 5 },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },

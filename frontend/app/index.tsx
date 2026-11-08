@@ -17,7 +17,7 @@ export default function Index() {
   }, [ready]);
 
   if (!ready) return null;
-  if (!hasOnboarded) return <Redirect href="/onboarding" />;
   if (!isAuthed) return <Redirect href="/(auth)/login" />;
+  if (!hasOnboarded) return <Redirect href="/onboarding" />;
   return <Redirect href="/(app)" />;
 }

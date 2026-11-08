@@ -3,7 +3,25 @@
 // auth.ts and inviteCode.ts out of groups.ts).
 import { memberPalette } from '../theme/colors';
 
-const STALE_MS = 90_000;
+type Coordinate = { latitude: number; longitude: number };
+type Region = Coordinate & { latitudeDelta: number; longitudeDelta: number };
+
+// The one definition of "has gone quiet", shared by the dimmed marker, the "last
+// seen" label and the alert so they can never disagree. Four missed 30s heartbeats.
+const STALE_MS = 120_000;
+const LOW_BATTERY = 0.15;
+
+// How often screens re-check staleness. Nothing else re-renders them when a member
+// simply stops sending updates, so a clock has to.
+export const PARTY_TICK_MS = 10_000;
+
+// Roughly 650m of latitude, so one hiker (or two standing together) doesn't zoom
+// the map to street-corner level.
+const MIN_FRAME_DELTA = 0.006;
+// Extra room around the party, so ordinary walking doesn't trigger a reframe.
+const FRAME_PADDING = 1.8;
+// Reframe a little before anyone actually reaches the edge of the map.
+const FRAME_EDGE = 0.85;
 
 // Every device needs to colour the same person identically with no coordination and
 // no extra Firestore write, so the colour is derived from the uid rather than stored.
@@ -53,6 +71,75 @@ export function lastSeenLabel(updatedAtMs: number | null, nowMs: number): string
   if (updatedAtMs === null) return null;
   const ageMs = nowMs - updatedAtMs;
   if (ageMs < STALE_MS) return null;
-  const minutes = Math.max(1, Math.round(ageMs / 60_000));
-  return `last seen ${minutes}m ago`;
+  return `last seen ${minutesOf(ageMs)}m ago`;
+}
+
+function minutesOf(ageMs: number): number {
+  return Math.max(1, Math.round(ageMs / 60_000));
+}
+
+export type PartyAlert = { key: string; severity: 'danger' | 'warning'; text: string };
+
+type AlertablePosition = {
+  displayName: string;
+  batteryLevel: number;
+  updatedAt: { toMillis: () => number } | null;
+};
+
+// Your own position is skipped: nobody needs telling that they've gone quiet.
+export function partyAlerts(
+  positions: Record<string, AlertablePosition>,
+  selfUid: string,
+  nowMs: number,
+): PartyAlert[] {
+  const alerts: PartyAlert[] = [];
+  for (const [uid, pos] of Object.entries(positions)) {
+    if (uid === selfUid) continue;
+    const ageMs = pos.updatedAt ? nowMs - pos.updatedAt.toMillis() : 0;
+    if (ageMs >= STALE_MS) {
+      alerts.push({
+        key: `stale-${uid}`,
+        severity: 'warning',
+        text: `${pos.displayName} hasn't checked in for ${minutesOf(ageMs)} minutes`,
+      });
+    }
+    if (pos.batteryLevel < LOW_BATTERY) {
+      alerts.push({
+        key: `battery-${uid}`,
+        severity: 'danger',
+        text: `${pos.displayName}'s battery is at ${Math.round(pos.batteryLevel * 100)}%`,
+      });
+    }
+  }
+  return alerts;
+}
+
+export function lerpCoordinate(from: Coordinate, to: Coordinate, t: number): Coordinate {
+  return {
+    latitude: from.latitude + (to.latitude - from.latitude) * t,
+    longitude: from.longitude + (to.longitude - from.longitude) * t,
+  };
+}
+
+// The map region that holds the whole party with room to spare.
+export function partyFrame(coordinates: Coordinate[]): Region {
+  const lats = coordinates.map((c) => c.latitude);
+  const lngs = coordinates.map((c) => c.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max(MIN_FRAME_DELTA, (maxLat - minLat) * FRAME_PADDING),
+    longitudeDelta: Math.max(MIN_FRAME_DELTA, (maxLng - minLng) * FRAME_PADDING),
+  };
+}
+
+export function insideFrame(coordinate: Coordinate, frame: Region): boolean {
+  return (
+    Math.abs(coordinate.latitude - frame.latitude) <= (frame.latitudeDelta / 2) * FRAME_EDGE &&
+    Math.abs(coordinate.longitude - frame.longitude) <= (frame.longitudeDelta / 2) * FRAME_EDGE
+  );
 }

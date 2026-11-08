@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -29,7 +29,6 @@ export default function Signup() {
     setSubmitting(true);
     try {
       await signUp(name, email.trim(), password);
-      router.replace('/(app)');
     } catch (err) {
       setError(authMessage(err));
     } finally {

@@ -43,11 +43,18 @@ export async function ensureUserDoc(
   });
 }
 
-export function subscribeToUserDoc(uid: string, cb: (doc: UserDoc | null) => void): Unsubscribe {
+export function subscribeToUserDoc(
+  uid: string,
+  cb: (doc: UserDoc | null) => void,
+  onError: () => void,
+): Unsubscribe {
   return onSnapshot(
     doc(db, 'users', uid),
     (snap) => cb(snap.exists() ? (snap.data() as UserDoc) : null),
-    (err) => console.warn('subscribeToUserDoc failed', err),
+    (err) => {
+      console.warn('subscribeToUserDoc failed', err);
+      onError();
+    },
   );
 }
 

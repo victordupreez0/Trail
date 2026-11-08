@@ -21,18 +21,27 @@ import {
   distanceToTrailhead,
   formatDistance,
   TRAILHEAD_RADIUS_METERS,
+  withTimeout,
 } from '../../src/lib/trailhead';
 import { useAppState } from '../../src/state/AppState';
 import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/spacing';
 import { typography } from '../../src/theme/typography';
 
+const LOCATION_TIMEOUT_MS = 6000;
+
 export default function CreateGroup() {
-  const { createGroup, trails } = useAppState();
+  const { createGroup, showPartyTab, trails } = useAppState();
   // "Start hike" on a trail's own screen arrives here with that trail preselected.
   const { trailId: preselectedTrailId } = useLocalSearchParams<{ trailId?: string }>();
   const [name, setName] = useState('');
   const [trailId, setTrailId] = useState(preselectedTrailId ?? trails[0].id);
+  // The preselected trail goes first, so it's visible without scrolling the list.
+  const [orderedTrails] = useState(() =>
+    [...trails].sort(
+      (a, b) => Number(b.id === preselectedTrailId) - Number(a.id === preselectedTrailId),
+    ),
+  );
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +50,9 @@ export default function CreateGroup() {
     try {
       await createGroup(name.trim(), trailId);
       haptics.medium();
-      router.replace('/(app)?tab=groups');
+      showPartyTab();
+      // Back to the one running app, rather than stacking a second copy on top.
+      router.dismissAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the hike.');
       setCreating(false);
@@ -107,9 +118,12 @@ export default function CreateGroup() {
         return;
       }
 
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const position =
+        (await withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          LOCATION_TIMEOUT_MS,
+        )) ?? (await Location.getLastKnownPositionAsync());
+      if (!position) throw new Error('No location available');
       const distance = distanceToTrailhead(position.coords, trailhead);
       const accuracy = position.coords.accuracy ?? 0;
 
@@ -158,7 +172,7 @@ export default function CreateGroup() {
 
       <Text style={styles.label}>Pick a trail</Text>
       <FlatList
-        data={trails}
+        data={orderedTrails}
         keyExtractor={(t) => t.id}
         showsVerticalScrollIndicator={false}
         style={styles.list}

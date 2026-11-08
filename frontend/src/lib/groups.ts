@@ -76,6 +76,7 @@ export function subscribeToGroup(groupId: string, cb: (group: Group | null) => v
 export function subscribeToActiveGroupForUser(
   uid: string,
   cb: (group: Group | null) => void,
+  onError: () => void,
 ): Unsubscribe {
   const q = query(
     collection(db, 'groups'),
@@ -87,6 +88,9 @@ export function subscribeToActiveGroupForUser(
     q,
     (snap) =>
       cb(snap.empty ? null : fromDoc(snap.docs[0].id, snap.docs[0].data() as Omit<Group, 'id'>)),
-    (err) => console.warn('subscribeToActiveGroupForUser failed', err),
+    (err) => {
+      console.warn('subscribeToActiveGroupForUser failed', err);
+      onError();
+    },
   );
 }

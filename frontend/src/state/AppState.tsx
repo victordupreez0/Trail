@@ -14,7 +14,12 @@ import {
   subscribeToActiveGroupForUser,
 } from '../lib/groups';
 import { subscribeToPositions } from '../lib/positions';
-import { cancelHikeReminders, scheduleHikeReminders } from '../lib/reminders';
+import {
+  cancelHikeReminders,
+  hasPermission,
+  requestPermission,
+  scheduleHikeReminders,
+} from '../lib/reminders';
 import {
   saveTrail,
   unsaveTrail,
@@ -31,8 +36,9 @@ import {
 import type { Group, PartyPosition, SavedTrail, UserDoc } from '../types/models';
 import { trails as bundledTrails, type Trail } from '../data/trails';
 
-const ONBOARDED_KEY = 'trail.hasOnboarded';
+const onboardedKey = (uid: string) => `trail.hasOnboarded.${uid}`;
 const DEMO_ADMIN_EMAIL = 'admin@gmail.com';
+const ALREADY_ON_A_HIKE = "You're already on a hike. End it before starting another.";
 
 // Auth, saved trails, the group layer, and the user profile doc are all real
 // (Firebase). The screens consuming this context don't change when the last mock
@@ -41,12 +47,12 @@ type AppStateValue = {
   hasOnboarded: boolean;
   onboardingReady: boolean;
   completeOnboarding: () => void;
+  replayOnboarding: () => void;
   authReady: boolean;
   user: User | null;
   isAuthed: boolean;
   isAdmin: boolean;
   trails: Trail[];
-  trailsLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -54,7 +60,7 @@ type AppStateValue = {
   savedTrailMeta: Record<string, SavedTrail>;
   savedTrailsLoading: boolean;
   isSaved: (trailId: string) => boolean;
-  toggleSaved: (trailId: string) => void;
+  setTrailSaved: (trailId: string, saved: boolean) => Promise<void>;
   updateSavedTrailNote: (trailId: string, note: string) => Promise<void>;
   userDoc: UserDoc | null;
   userDocLoading: boolean;
@@ -63,23 +69,32 @@ type AppStateValue = {
   setReminderSettings: (
     patch: Partial<Pick<UserDoc, 'remindersEnabled' | 'waterIntervalMin' | 'restIntervalMin'>>,
   ) => Promise<void>;
+  remindersBlocked: boolean;
   activeGroup: Group | null;
-  partyPositions: Record<string, PartyPosition>;
   groupLoading: boolean;
   createGroup: (name: string, trailId: string) => Promise<Group>;
   joinByCode: (code: string) => Promise<void>;
   endHike: () => Promise<void>;
+  // True once a live Firestore listener has failed, so screens can offer a retry
+  // instead of waiting forever on a snapshot that is never coming.
+  syncFailed: boolean;
+  retrySync: () => void;
+  // Bumped to ask the pager to show the Party tab; see app/(app)/index.tsx.
+  partyTabRequest: number;
+  showPartyTab: () => void;
 };
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 
+// Separate from the main context on purpose. Positions change every few seconds
+// during a hike, and only the two screens that show the party should re-render.
+const PartyPositionsContext = createContext<Record<string, PartyPosition>>({});
+
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [onboardingReady, setOnboardingReady] = useState(false);
+  const [onboarding, setOnboarding] = useState<{ uid: string; done: boolean } | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [trails, setTrails] = useState<Trail[]>(bundledTrails);
-  const [trailsLoading, setTrailsLoading] = useState(false);
   const [savedTrailIds, setSavedTrailIds] = useState<string[]>([]);
   const [savedTrailMeta, setSavedTrailMeta] = useState<Record<string, SavedTrail>>({});
   const [savedTrailsLoading, setSavedTrailsLoading] = useState(false);
@@ -88,6 +103,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
   const [partyPositions, setPartyPositions] = useState<Record<string, PartyPosition>>({});
+  const [remindersBlocked, setRemindersBlocked] = useState(false);
+  const [syncFailed, setSyncFailed] = useState(false);
+  const [syncAttempt, setSyncAttempt] = useState(0);
+  const [partyTabRequest, setPartyTabRequest] = useState(0);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -109,30 +128,39 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) {
       setTrails(bundledTrails);
-      setTrailsLoading(false);
       return;
     }
-    setTrailsLoading(true);
-    return subscribeToCatalog(
-      (catalog) => {
-        setTrails(catalog);
-        setTrailsLoading(false);
-      },
-      (err) => {
-        console.warn('trail catalog listener failed', err);
-        setTrailsLoading(false);
-      },
-    );
+    return subscribeToCatalog(setTrails, (err) => {
+      console.warn('trail catalog listener failed', err);
+    });
   }, [user]);
 
-  // Read once at cold start. Without this the carousel replays every launch, since
-  // hasOnboarded otherwise starts false every time the app process starts fresh.
+  // Remembered per account, so the intro shows once for each person who signs in on
+  // this phone. Keeping the uid alongside the answer means a flag read for one
+  // account can never be mistaken for another's while the next read is in flight.
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDED_KEY)
-      .then((v) => setHasOnboarded(v === 'true'))
-      .catch((err) => console.warn('reading onboarding flag failed', err))
-      .finally(() => setOnboardingReady(true));
-  }, []);
+    if (!user) {
+      setOnboarding(null);
+      return;
+    }
+    const uid = user.uid;
+    let cancelled = false;
+    AsyncStorage.getItem(onboardedKey(uid))
+      .then((v) => {
+        if (!cancelled) setOnboarding({ uid, done: v === 'true' });
+      })
+      .catch((err) => {
+        console.warn('reading onboarding flag failed', err);
+        // A storage failure shouldn't trap anyone on the intro.
+        if (!cancelled) setOnboarding({ uid, done: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const onboardingReady = user === null || onboarding?.uid === user.uid;
+  const hasOnboarded = user !== null && onboarding?.uid === user.uid && onboarding.done;
 
   // Live-syncs saved trails to Firestore. Cleared on sign-out so switching accounts
   // can't leak one user's saves into another's. savedTrailsLoading exists so
@@ -162,9 +190,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       (err) => {
         console.warn('savedTrails listener failed', err);
         setSavedTrailsLoading(false);
+        setSyncFailed(true);
       },
     );
-  }, [user]);
+  }, [user, syncAttempt]);
 
   // Live-syncs the user's own profile doc (hydration, reminders, avatar). Cleared on
   // sign-out for the same reason the saved-trails listener is.
@@ -175,11 +204,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       return;
     }
     setUserDocLoading(true);
-    return subscribeToUserDoc(user.uid, (u) => {
-      setUserDoc(u);
-      setUserDocLoading(false);
-    });
-  }, [user]);
+    return subscribeToUserDoc(
+      user.uid,
+      (u) => {
+        setUserDoc(u);
+        setUserDocLoading(false);
+      },
+      () => {
+        setUserDocLoading(false);
+        setSyncFailed(true);
+      },
+    );
+  }, [user, syncAttempt]);
 
   // The active group is whichever one the signed-in user is a member of and is
   // still active; self-discovering, so creating or joining one surfaces it here
@@ -191,11 +227,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       return;
     }
     setGroupLoading(true);
-    return subscribeToActiveGroupForUser(user.uid, (group) => {
-      setActiveGroup(group);
-      setGroupLoading(false);
-    });
-  }, [user]);
+    return subscribeToActiveGroupForUser(
+      user.uid,
+      (group) => {
+        setActiveGroup(group);
+        setGroupLoading(false);
+      },
+      () => {
+        setGroupLoading(false);
+        setSyncFailed(true);
+      },
+    );
+  }, [user, syncAttempt]);
 
   // Keyed on the group id rather than the group object, so a snapshot that only
   // changes memberIds or active doesn't tear down and rebuild the positions listener.
@@ -205,38 +248,58 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setPartyPositions({});
       return;
     }
-    return subscribeToPositions(activeGroupDocId, setPartyPositions);
-  }, [activeGroupDocId]);
+    return subscribeToPositions(activeGroupDocId, setPartyPositions, () => setSyncFailed(true));
+  }, [activeGroupDocId, syncAttempt]);
 
   // Lives here rather than in a screen, so reminders survive navigation between the
   // pager's tabs. Keyed on whether a hike is active and on the reminder settings
   // themselves, so toggling the setting or changing an interval mid-hike reschedules
-  // rather than waiting for the next hike to start.
+  // rather than waiting for the next hike to start. No cancel on re-run: scheduling
+  // the same identifier replaces the old reminder.
   const hikeActive = activeGroup !== null && activeGroup.active;
   const remindersEnabled = userDoc?.remindersEnabled ?? true;
   const waterIntervalMin = userDoc?.waterIntervalMin ?? 30;
   const restIntervalMin = userDoc?.restIntervalMin ?? 90;
   useEffect(() => {
     if (!hikeActive || !remindersEnabled) {
+      setRemindersBlocked(false);
       cancelHikeReminders().catch((err) => console.warn('cancelHikeReminders failed', err));
       return;
     }
-    scheduleHikeReminders(waterIntervalMin, restIntervalMin).catch((err) =>
-      console.warn('scheduleHikeReminders failed', err),
-    );
+    let cancelled = false;
+    (async () => {
+      const granted = await hasPermission();
+      if (cancelled) return;
+      setRemindersBlocked(!granted);
+      if (granted) await scheduleHikeReminders(waterIntervalMin, restIntervalMin);
+    })().catch((err) => console.warn('scheduleHikeReminders failed', err));
     return () => {
-      cancelHikeReminders().catch((err) => console.warn('cancelHikeReminders failed', err));
+      cancelled = true;
     };
   }, [hikeActive, remindersEnabled, waterIntervalMin, restIntervalMin]);
 
-  const value = useMemo<AppStateValue>(
-    () => ({
+  const value = useMemo<AppStateValue>(() => {
+    // Asked just before a hike starts, while the person can see why. Waiting until
+    // the first reminder is due would mean it silently never arrives.
+    const askForReminders = async () => {
+      if (remindersEnabled) await requestPermission().catch(() => false);
+    };
+
+    return {
       hasOnboarded,
       onboardingReady,
       completeOnboarding: () => {
-        setHasOnboarded(true);
-        AsyncStorage.setItem(ONBOARDED_KEY, 'true').catch((err) =>
+        if (!user) return;
+        setOnboarding({ uid: user.uid, done: true });
+        AsyncStorage.setItem(onboardedKey(user.uid), 'true').catch((err) =>
           console.warn('persisting onboarding flag failed', err),
+        );
+      },
+      replayOnboarding: () => {
+        if (!user) return;
+        setOnboarding({ uid: user.uid, done: false });
+        AsyncStorage.removeItem(onboardedKey(user.uid)).catch((err) =>
+          console.warn('clearing onboarding flag failed', err),
         );
       },
       authReady,
@@ -244,7 +307,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       isAuthed: user !== null,
       isAdmin: user?.email === DEMO_ADMIN_EMAIL,
       trails,
-      trailsLoading,
       signIn: async (email, password) => {
         await signIn(email, password);
       },
@@ -256,14 +318,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       savedTrailMeta,
       savedTrailsLoading,
       isSaved: (trailId) => savedTrailIds.includes(trailId),
-      toggleSaved: (trailId) => {
+      // The onSnapshot listener above updates local state. Callers handle a
+      // rejection, because a failed write here means a lost save.
+      setTrailSaved: async (trailId, saved) => {
         if (!user) return;
-        const write = savedTrailIds.includes(trailId)
-          ? unsaveTrail(user.uid, trailId)
-          : saveTrail(user.uid, trailId);
-        // The onSnapshot listener above updates local state; a failed write here
-        // means a lost save, so it's worth surfacing, not swallowing.
-        write.catch((err) => console.warn('toggleSaved write failed', err));
+        await (saved ? saveTrail(user.uid, trailId) : unsaveTrail(user.uid, trailId));
       },
       updateSavedTrailNote: async (trailId, note) => {
         if (!user) return;
@@ -284,17 +343,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         if (!user) return;
         await setReminderSettingsDoc(user.uid, patch);
       },
+      remindersBlocked,
       activeGroup,
-      partyPositions,
       groupLoading,
-      createGroup: (name, trailId) => {
-        if (!user) return Promise.reject(new Error('Sign in to start a hike.'));
+      createGroup: async (name, trailId) => {
+        if (!user) throw new Error('Sign in to start a hike.');
+        // Only one active hike is ever shown, so a second would hide the first.
+        if (activeGroup) throw new Error(ALREADY_ON_A_HIKE);
+        await askForReminders();
         return createGroupDoc(user.uid, name, trailId);
       },
       joinByCode: async (code) => {
         if (!user) throw new Error('Sign in to join a hike.');
+        if (activeGroup) throw new Error(ALREADY_ON_A_HIKE);
         const groupId = await findGroupByInviteCode(code.trim().toUpperCase());
         if (!groupId) throw new Error('No hike found with that code');
+        await askForReminders();
         await joinGroup(groupId, user.uid);
       },
       endHike: async () => {
@@ -304,30 +368,48 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         }
         await endGroup(activeGroup.id, activeGroup.inviteCode);
       },
-    }),
-    [
-      hasOnboarded,
-      onboardingReady,
-      authReady,
-      user,
-      trails,
-      trailsLoading,
-      savedTrailIds,
-      savedTrailMeta,
-      savedTrailsLoading,
-      userDoc,
-      userDocLoading,
-      activeGroup,
-      partyPositions,
-      groupLoading,
-    ],
-  );
+      syncFailed,
+      retrySync: () => {
+        setSyncFailed(false);
+        setSyncAttempt((n) => n + 1);
+      },
+      partyTabRequest,
+      showPartyTab: () => setPartyTabRequest((n) => n + 1),
+    };
+  }, [
+    hasOnboarded,
+    onboardingReady,
+    authReady,
+    user,
+    trails,
+    savedTrailIds,
+    savedTrailMeta,
+    savedTrailsLoading,
+    userDoc,
+    userDocLoading,
+    remindersEnabled,
+    remindersBlocked,
+    activeGroup,
+    groupLoading,
+    syncFailed,
+    partyTabRequest,
+  ]);
 
-  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
+  return (
+    <AppStateContext.Provider value={value}>
+      <PartyPositionsContext.Provider value={partyPositions}>
+        {children}
+      </PartyPositionsContext.Provider>
+    </AppStateContext.Provider>
+  );
 }
 
 export function useAppState() {
   const ctx = useContext(AppStateContext);
   if (!ctx) throw new Error('useAppState must be used within AppStateProvider');
   return ctx;
+}
+
+export function usePartyPositions() {
+  return useContext(PartyPositionsContext);
 }

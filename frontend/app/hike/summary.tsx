@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -41,7 +41,7 @@ export default function HikeSummary() {
 
   // A one-time reveal, not a live clock: computed once at mount from the moment the
   // hike actually ended, not re-evaluated on every render.
-  const durationMs = Date.now() - Number(startedAtMs ?? Date.now());
+  const [durationMs] = useState(() => Date.now() - Number(startedAtMs ?? Date.now()));
   const waterMl = waterToday(userDoc?.waterMl ?? 0, userDoc?.waterDate ?? null, todayKey());
 
   const sweep = useSharedValue(reduced ? 0 : height);
@@ -116,18 +116,18 @@ export default function HikeSummary() {
           <Stat
             value={trail.distanceM / 1000}
             format={(n) => `${n.toFixed(1)} km`}
-            label="Distance"
+            label="Trail length"
           />
           <Stat
             value={Number(partySize) || 1}
             format={(n) => `${Math.round(n)}`}
             label="In your party"
           />
-          <Stat value={waterMl} format={(n) => `${Math.round(n)} ml`} label="Water logged" />
+          <Stat value={waterMl} format={(n) => `${Math.round(n)} ml`} label="Water today" />
         </View>
 
         <Text style={styles.closing}>
-          You were out for {formatDuration(durationMs)}. Everyone got home.
+          You were out for {formatDuration(durationMs)}. Well done.
         </Text>
       </ScrollView>
 

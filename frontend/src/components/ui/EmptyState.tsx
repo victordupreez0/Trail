@@ -4,15 +4,18 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { radius, spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
+import { Button } from './Button';
 
 export function EmptyState({
   title,
   body,
   icon = 'leaf-outline',
+  action,
 }: {
   title: string;
   body: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  action?: { label: string; onPress: () => void };
 }) {
   return (
     <View style={styles.container}>
@@ -21,6 +24,11 @@ export function EmptyState({
       </View>
       <Text style={typography.heading}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
+      {action ? (
+        <View style={styles.action}>
+          <Button label={action.label} variant="secondary" onPress={action.onPress} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -42,4 +50,5 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   body: { ...typography.body, color: colors.muted, textAlign: 'center' },
+  action: { alignSelf: 'stretch', marginTop: spacing.sm },
 });

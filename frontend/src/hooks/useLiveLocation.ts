@@ -1,6 +1,7 @@
 import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { dueForWrite } from '../lib/party';
 import { writePosition } from '../lib/positions';
@@ -23,8 +24,9 @@ export function useLiveLocation(
   groupId: string | null,
   uid: string | null,
   displayName: string,
-): LiveLocationStatus {
+): { status: LiveLocationStatus; retry: () => void } {
   const [status, setStatus] = useState<LiveLocationStatus>('idle');
+  const [attempt, setAttempt] = useState(0);
   const lastFixRef = useRef<Fix | null>(null);
   const lastWriteMsRef = useRef<number | null>(null);
   const batteryRef = useRef(1);
@@ -41,17 +43,6 @@ export function useLiveLocation(
     lastFixRef.current = null;
     lastWriteMsRef.current = null;
 
-    const write = (fix: Fix) => {
-      lastWriteMsRef.current = Date.now();
-      writePosition(groupId, uid, {
-        displayName,
-        position: { latitude: fix.latitude, longitude: fix.longitude },
-        accuracy: fix.accuracy,
-        batteryLevel: batteryRef.current,
-        moving: fix.moving,
-      }).catch((err) => console.warn('writePosition failed', err));
-    };
-
     const refreshBattery = async () => {
       try {
         const level = await Battery.getBatteryLevelAsync();
@@ -62,7 +53,19 @@ export function useLiveLocation(
       }
     };
 
-    const handleLocation = (loc: Location.LocationObject) => {
+    const write = (fix: Fix) => {
+      lastWriteMsRef.current = Date.now();
+      void refreshBattery();
+      writePosition(groupId, uid, {
+        displayName,
+        position: { latitude: fix.latitude, longitude: fix.longitude },
+        accuracy: fix.accuracy,
+        batteryLevel: batteryRef.current,
+        moving: fix.moving,
+      }).catch((err) => console.warn('writePosition failed', err));
+    };
+
+    const handleLocation = (loc: Location.LocationObject, force = false) => {
       const fix: Fix = {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
@@ -70,7 +73,7 @@ export function useLiveLocation(
         moving: (loc.coords.speed ?? 0) > MOVING_SPEED_MS,
       };
       lastFixRef.current = fix;
-      if (dueForWrite(lastWriteMsRef.current, Date.now(), WATCH_MIN_GAP_MS)) write(fix);
+      if (force || dueForWrite(lastWriteMsRef.current, Date.now(), WATCH_MIN_GAP_MS)) write(fix);
     };
 
     (async () => {
@@ -85,13 +88,17 @@ export function useLiveLocation(
       await refreshBattery();
       if (cancelled) return;
 
-      // A stationary phone may not trigger the watcher promptly. Publish one fix
-      // immediately so a newly joined member appears on the host's map.
-      const initialLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // The last known fix is instant, so a new member appears on the map straight
+      // away. A fresh fix can take many seconds indoors, so it replaces that one
+      // whenever it arrives rather than holding everything else up.
+      const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
       if (cancelled) return;
-      handleLocation(initialLocation);
+      if (lastKnown) handleLocation(lastKnown);
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+        .then((loc) => {
+          if (!cancelled) handleLocation(loc, true);
+        })
+        .catch((err) => console.warn('getCurrentPositionAsync failed', err));
 
       watcher = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, distanceInterval: 10, timeInterval: 5000 },
@@ -120,7 +127,19 @@ export function useLiveLocation(
       watcher?.remove();
       if (heartbeat) clearInterval(heartbeat);
     };
-  }, [groupId, uid, displayName]);
+  }, [groupId, uid, displayName, attempt]);
 
-  return status;
+  // The denied banner sends people to the Settings app. Without this, turning
+  // location on there changes nothing until the app is restarted.
+  useEffect(() => {
+    if (status !== 'denied' && status !== 'error') return;
+    const subscription = AppState.addEventListener('change', async (next) => {
+      if (next !== 'active') return;
+      const { granted } = await Location.getForegroundPermissionsAsync();
+      if (granted) setAttempt((n) => n + 1);
+    });
+    return () => subscription.remove();
+  }, [status]);
+
+  return { status, retry: () => setAttempt((n) => n + 1) };
 }

@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { Platform, StyleSheet, View, type ViewProps } from 'react-native';
 
 import { hexWithAlpha } from '../../lib/party';
 import { colors } from '../../theme/colors';
@@ -20,20 +20,14 @@ export function GlassSurface({
   children,
   ...props
 }: Props) {
+  // Android's blur is experimental, costs frames during swipes and struggles over
+  // the map, so Android always gets the solid surface.
+  const opaque = solid || Platform.OS === 'android';
   return (
     <View style={[styles.hairline, style]} {...props}>
-      {/* Always present, blur or not: dimezisBlurView is experimental and known to
-          struggle over SurfaceView-backed content (react-native-maps), so a failed
-          or no-op blur must not mean fully transparent chrome. */}
-      <View style={[StyleSheet.absoluteFill, solid ? styles.solidFallback : styles.tint]} />
-      {solid ? null : (
-        <BlurView
-          intensity={intensity}
-          tint={tint}
-          // Required for a real blur on Android; expo-blur ignores it elsewhere.
-          experimentalBlurMethod="dimezisBlurView"
-          style={StyleSheet.absoluteFill}
-        />
+      <View style={[StyleSheet.absoluteFill, opaque ? styles.solidFallback : styles.tint]} />
+      {opaque ? null : (
+        <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
       )}
       {children}
     </View>

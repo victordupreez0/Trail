@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import MapView, { Polyline, type Region } from 'react-native-maps';
 import Animated, {
   Easing,
   interpolate,
@@ -16,7 +16,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { AlertStrip } from '../components/AlertStrip';
 import { Avatar } from '../components/Avatar';
+import { PartyMarker } from '../components/PartyMarker';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { GlassSurface } from '../components/ui/GlassSurface';
@@ -29,11 +31,15 @@ import {
   breadcrumbSegments,
   hexWithAlpha,
   initialsOf,
+  insideFrame,
   lastSeenLabel,
   memberColor,
+  PARTY_TICK_MS,
+  partyAlerts,
+  partyFrame,
 } from '../lib/party';
-import { useAppState } from '../state/AppState';
-import { colors, shadow } from '../theme/colors';
+import { useAppState, usePartyPositions } from '../state/AppState';
+import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
@@ -45,12 +51,9 @@ type Coordinate = { latitude: number; longitude: number };
 // without the map turning into a scribble.
 const BREADCRUMB_LENGTH = 12;
 
-// Re-evaluated on a slow tick rather than only on new snapshots, otherwise a member
-// who stops sending updates never gets picked up as stale on an otherwise-idle screen.
-const STALE_CHECK_INTERVAL_MS = 15_000;
-
 export function GroupsScreen() {
-  const { user, activeGroup, partyPositions, groupLoading, endHike, trails } = useAppState();
+  const { user, activeGroup, groupLoading, endHike, trails, syncFailed, retrySync } = useAppState();
+  const partyPositions = usePartyPositions();
   // react-native-maps renders blank when its parent sizes it via flex inside a
   // pager, so it needs concrete pixel dimensions. Those come from measuring this
   // screen rather than the window: the window includes the status bar and the
@@ -60,21 +63,46 @@ export function GroupsScreen() {
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Record<string, Coordinate[]>>({});
+  const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef<MapView>(null);
-  const framedMembersRef = useRef('');
+  const frameRef = useRef<Region | null>(null);
+  // Stops as soon as someone touches the map, so it never moves out from under them.
+  const followingRef = useRef(true);
+  const previousGroup = useRef(activeGroup);
   const { reduced } = useMotion();
   const tabBarInset = useTabBarInset();
 
-  const status = useLiveLocation(
+  const { status, retry } = useLiveLocation(
     activeGroup?.id ?? null,
     user?.uid ?? null,
     user?.displayName || 'Hiker',
   );
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), STALE_CHECK_INTERVAL_MS);
+    const id = setInterval(() => setNow(Date.now()), PARTY_TICK_MS);
     return () => clearInterval(id);
   }, []);
+
+  // Each hike starts clean: none of the last one's trails, framing or map state.
+  const activeGroupId = activeGroup?.id ?? null;
+  useEffect(() => {
+    setBreadcrumbs({});
+    setMapReady(false);
+    frameRef.current = null;
+    followingRef.current = true;
+  }, [activeGroupId]);
+
+  // Everyone gets the summary, whoever ended the hike. Signing out also clears the
+  // active hike, but by then there's no user, so it doesn't count as the hike ending.
+  useEffect(() => {
+    const ended = previousGroup.current;
+    previousGroup.current = activeGroup;
+    if (!ended || activeGroup || !user) return;
+    const startedAtMs = ended.startedAt?.toMillis() ?? Date.now();
+    router.push(
+      `/hike/summary?trailId=${ended.trailId}&startedAtMs=${startedAtMs}&partySize=${ended.memberIds.length}`,
+    );
+  }, [activeGroup, user]);
 
   // Firestore only ever gives us the latest position per member, so a trail behind
   // them has to be accumulated client-side; not persisted, lost on remount, which is
@@ -99,27 +127,19 @@ export function GroupsScreen() {
     });
   }, [partyPositions]);
 
+  // Waits for the map to be ready, because a move requested before then is dropped.
+  // Only moves when someone is about to leave the frame, so the map stays still
+  // through ordinary walking.
   useEffect(() => {
-    if (!activeGroup || box.width === 0) return;
-    const coordinates = Object.entries(partyPositions)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([, position]) => position.position);
-    const frameKey = `${activeGroup.id}:${Object.keys(partyPositions).sort().join(',')}`;
-    if (!coordinates.length || framedMembersRef.current === frameKey) return;
-    framedMembersRef.current = frameKey;
-
-    if (coordinates.length === 1) {
-      mapRef.current?.animateToRegion(
-        { ...coordinates[0], latitudeDelta: 0.01, longitudeDelta: 0.01 },
-        500,
-      );
-      return;
-    }
-    mapRef.current?.fitToCoordinates(coordinates, {
-      edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
-      animated: true,
-    });
-  }, [activeGroup, box.width, partyPositions]);
+    if (!mapReady || !followingRef.current) return;
+    const coordinates = Object.values(partyPositions).map((p) => p.position);
+    if (!coordinates.length) return;
+    const current = frameRef.current;
+    if (current && coordinates.every((c) => insideFrame(c, current))) return;
+    const next = partyFrame(coordinates);
+    frameRef.current = next;
+    mapRef.current?.animateToRegion(next, reduced ? 0 : 600);
+  }, [mapReady, partyPositions, reduced]);
 
   if (groupLoading) {
     return (
@@ -134,20 +154,35 @@ export function GroupsScreen() {
   if (!activeGroup || !trail) {
     return (
       <View style={[styles.emptyContainer, { paddingBottom: tabBarInset }]}>
-        <EmptyState
-          title="No active hike"
-          body="Start a group to share your live location with your party."
-          icon="people-outline"
-        />
-        <View style={styles.emptyActions}>
-          <Button label="Create a group" icon="add" onPress={() => router.push('/group/create')} />
-          <Button
-            label="Join with a code"
-            icon="enter-outline"
-            variant="secondary"
-            onPress={() => router.push('/group/join')}
+        {syncFailed ? (
+          <EmptyState
+            title="Couldn't load your hike"
+            body="Check your connection and try again."
+            icon="cloud-offline-outline"
+            action={{ label: 'Try again', onPress: retrySync }}
           />
-        </View>
+        ) : (
+          <>
+            <EmptyState
+              title="No active hike"
+              body="Start a group to share your live location with your party."
+              icon="people-outline"
+            />
+            <View style={styles.emptyActions}>
+              <Button
+                label="Create a group"
+                icon="add"
+                onPress={() => router.push('/group/create')}
+              />
+              <Button
+                label="Join with a code"
+                icon="enter-outline"
+                variant="secondary"
+                onPress={() => router.push('/group/join')}
+              />
+            </View>
+          </>
+        )}
       </View>
     );
   }
@@ -162,6 +197,7 @@ export function GroupsScreen() {
   // Half the measured space keeps the sheet below it fully on screen, button included.
   const mapHeight = Math.round(box.height * 0.5);
   const isOwner = user?.uid === activeGroup.ownerId;
+  const alerts = user ? partyAlerts(partyPositions, user.uid, now) : [];
 
   const members = activeGroup.memberIds.map((uid) => {
     const pos = partyPositions[uid];
@@ -179,25 +215,38 @@ export function GroupsScreen() {
     };
   });
 
+  const recentre = () => {
+    followingRef.current = true;
+    const coordinates = Object.values(partyPositions).map((p) => p.position);
+    const next = coordinates.length ? partyFrame(coordinates) : region;
+    frameRef.current = coordinates.length ? next : null;
+    mapRef.current?.animateToRegion(next, reduced ? 0 : 500);
+  };
+
+  const shareCode = () => {
+    Share.share({
+      message: `Join my hike on Trail with this code: ${activeGroup.inviteCode}`,
+    }).catch((err) => console.warn('sharing the invite code failed', err));
+  };
+
   const endTheHike = async () => {
     setEndError(null);
     setEnding(true);
-    // Read before awaiting: subscribeToActiveGroupForUser clears activeGroup to null
-    // almost as soon as endHike's write lands, so these would be gone after.
-    const trailId = activeGroup.trailId;
-    const startedAtMs = activeGroup.startedAt?.toMillis() ?? Date.now();
-    const partySize = activeGroup.memberIds.length;
     try {
       await endHike();
       haptics.success();
-      router.push(
-        `/hike/summary?trailId=${trailId}&startedAtMs=${startedAtMs}&partySize=${partySize}`,
-      );
     } catch (err) {
       setEndError(err instanceof Error ? err.message : 'Could not end the hike.');
     } finally {
       setEnding(false);
     }
+  };
+
+  const confirmEnd = () => {
+    Alert.alert('End this hike?', 'Live sharing stops for everyone in your party.', [
+      { text: 'Keep going', style: 'cancel' },
+      { text: 'End hike', style: 'destructive', onPress: () => void endTheHike() },
+    ]);
   };
 
   return (
@@ -215,11 +264,18 @@ export function GroupsScreen() {
         }}
       >
         {box.height > 0 ? (
-          <View style={[styles.mapWrap, { width: box.width, height: mapHeight }]}>
+          <View
+            style={[styles.mapWrap, { width: box.width, height: mapHeight }]}
+            onTouchStart={() => {
+              followingRef.current = false;
+            }}
+          >
             <MapView
               ref={mapRef}
               style={{ width: box.width, height: mapHeight }}
               initialRegion={region}
+              onMapReady={() => setMapReady(true)}
+              moveOnMarkerPress={false}
               showsPointsOfInterest={false}
               showsCompass={false}
               toolbarEnabled={false}
@@ -249,25 +305,24 @@ export function GroupsScreen() {
               {members
                 .filter((m) => m.pos)
                 .map((m) => (
-                  <Marker
+                  <PartyMarker
                     key={m.uid}
                     coordinate={m.pos!.position}
+                    initials={m.initials}
+                    color={m.color}
+                    stale={m.stale}
                     title={m.name}
                     description={`Battery ${Math.round(m.pos!.batteryLevel * 100)}%`}
-                    tracksViewChanges={false}
-                  >
-                    <View style={[styles.pin, m.stale && styles.pinStale]}>
-                      <Avatar initials={m.initials} color={m.color} size={34} />
-                    </View>
-                  </Marker>
+                    reduced={reduced}
+                  />
                 ))}
             </MapView>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Recentre map on the trail"
+              accessibilityLabel="Recentre map on your party"
               style={styles.recentreWrap}
-              onPress={() => mapRef.current?.animateToRegion(region, 500)}
+              onPress={recentre}
             >
               <GlassSurface style={styles.recentre}>
                 <Ionicons name="locate" size={20} color={colors.text} />
@@ -276,80 +331,136 @@ export function GroupsScreen() {
           </View>
         ) : null}
 
-        {/* Only overlaps the map by radius.xl (the negative marginTop below), so the
-          blur reads as a frosted lip along the top edge rather than the whole sheet -
-          the sheet itself sits over the screen background beneath that. Swap to
-          solid if this stutters against a moving map on a mid-range device; see
-          BUILD-PLAN.md's S2 performance note. */}
-        <GlassSurface style={styles.sheet}>
-          <CompassPull mapRef={mapRef} region={region} reduced={reduced} />
-          <View style={styles.sheetHeader}>
-            <View style={styles.sheetTitle}>
-              <Text style={typography.heading} numberOfLines={1}>
-                {activeGroup.name}
-              </Text>
-              <Text style={styles.sub} numberOfLines={1}>
-                {trail.name} · code {activeGroup.inviteCode}
-              </Text>
-            </View>
-            {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
-          </View>
-
-          {status === 'denied' ? (
-            <View style={styles.permissionBanner}>
-              <Ionicons name="location-outline" size={17} color={colors.accent} />
-              <Text style={styles.permissionText}>
-                Location access is off, so your party can&apos;t see you.
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open location settings"
-                onPress={() => Linking.openSettings()}
-                hitSlop={8}
-              >
-                <Text style={styles.permissionAction}>Settings</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <View style={styles.members}>
-            {members.map((m) => (
-              <Pressable
-                key={m.uid}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  m.pos ? `Show ${m.name} on the map` : `${m.name} location unavailable`
-                }
-                disabled={!m.pos}
-                onPress={() =>
-                  m.pos &&
-                  mapRef.current?.animateToRegion(
-                    {
-                      ...m.pos.position,
-                      latitudeDelta: 0.005,
-                      longitudeDelta: 0.005,
-                    },
-                    500,
-                  )
-                }
-                style={({ pressed }) => [
-                  styles.member,
-                  m.stale && styles.memberStale,
-                  pressed && styles.memberPressed,
-                ]}
-              >
-                <Avatar initials={m.initials} color={m.color} size={38} />
-                <Text style={styles.memberName} numberOfLines={1}>
-                  {m.name}
+        <GlassSurface style={styles.sheet} solid>
+          <CompassPull onRecentre={recentre} reduced={reduced} />
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetTitle}>
+                <Text style={typography.heading} numberOfLines={1}>
+                  {activeGroup.name}
                 </Text>
-                <Text style={styles.memberMeta} numberOfLines={1}>
-                  {m.meta}
+                <Text style={styles.sub} numberOfLines={1}>
+                  {trail.name}
                 </Text>
-              </Pressable>
-            ))}
-          </View>
+              </View>
+              {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
+            </View>
 
-          {endError ? <Text style={styles.error}>{endError}</Text> : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Share invite code ${activeGroup.inviteCode.split('').join(' ')}`}
+              onPress={shareCode}
+              style={({ pressed }) => [styles.codeRow, pressed && styles.memberPressed]}
+            >
+              <View style={styles.codeCopy}>
+                <Text style={styles.sub}>Invite code</Text>
+                <Text style={styles.code} selectable>
+                  {activeGroup.inviteCode}
+                </Text>
+              </View>
+              <Ionicons name="share-outline" size={20} color={colors.primaryDark} />
+              <Text style={styles.shareText}>Share</Text>
+            </Pressable>
+
+            {status === 'denied' ? (
+              <View style={styles.permissionBanner}>
+                <Ionicons name="location-outline" size={17} color={colors.accent} />
+                <Text style={styles.permissionText}>
+                  Location access is off, so your party can&apos;t see you.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open location settings"
+                  onPress={() => Linking.openSettings()}
+                  hitSlop={8}
+                >
+                  <Text style={styles.permissionAction}>Settings</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {status === 'error' ? (
+              <View style={styles.permissionBanner}>
+                <Ionicons name="location-outline" size={17} color={colors.accent} />
+                <Text style={styles.permissionText}>
+                  Trail can&apos;t get your location. Check that location is on.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Try getting your location again"
+                  onPress={retry}
+                  hitSlop={8}
+                >
+                  <Text style={styles.permissionAction}>Try again</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {syncFailed ? (
+              <View style={styles.permissionBanner}>
+                <Ionicons name="cloud-offline-outline" size={17} color={colors.accent} />
+                <Text style={styles.permissionText}>Live updates have stopped.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Reconnect live updates"
+                  onPress={retrySync}
+                  hitSlop={8}
+                >
+                  <Text style={styles.permissionAction}>Try again</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <AlertStrip alerts={alerts} />
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.members}
+            >
+              {members.map((m) => (
+                <Pressable
+                  key={m.uid}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    m.pos ? `Show ${m.name} on the map` : `${m.name} location unavailable`
+                  }
+                  disabled={!m.pos}
+                  onPress={() => {
+                    if (!m.pos) return;
+                    followingRef.current = false;
+                    mapRef.current?.animateToRegion(
+                      {
+                        ...m.pos.position,
+                        latitudeDelta: 0.005,
+                        longitudeDelta: 0.005,
+                      },
+                      reduced ? 0 : 500,
+                    );
+                  }}
+                  style={({ pressed }) => [
+                    styles.member,
+                    m.stale && styles.memberStale,
+                    pressed && styles.memberPressed,
+                  ]}
+                >
+                  <Avatar initials={m.initials} color={m.color} size={38} />
+                  <Text style={styles.memberName} numberOfLines={1}>
+                    {m.name}
+                  </Text>
+                  <Text style={styles.memberMeta} numberOfLines={1}>
+                    {m.meta}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {endError ? <Text style={styles.error}>{endError}</Text> : null}
+          </ScrollView>
 
           {isOwner ? (
             <Button
@@ -357,7 +468,7 @@ export function GroupsScreen() {
               variant="secondary"
               icon="stop-circle-outline"
               loading={ending}
-              onPress={endTheHike}
+              onPress={confirmEnd}
             />
           ) : null}
         </GlassSurface>
@@ -375,20 +486,12 @@ const PULL_MAX = 90;
 // grabber rather than the map itself: a pan gesture on the MapView would fight its
 // own native pan/drag handling, and the grabber is already a "pull" affordance with
 // nothing else claiming it today.
-function CompassPull({
-  mapRef,
-  region,
-  reduced,
-}: {
-  mapRef: RefObject<MapView | null>;
-  region: Region;
-  reduced: boolean;
-}) {
+function CompassPull({ onRecentre, reduced }: { onRecentre: () => void; reduced: boolean }) {
   const pull = useSharedValue(0);
 
   const recentre = () => {
     haptics.medium();
-    mapRef.current?.animateToRegion(region, 500);
+    onRecentre();
   };
 
   const pan = Gesture.Pan()
@@ -462,8 +565,6 @@ function LivePill({ reduced }: { reduced: boolean }) {
 const styles = StyleSheet.create({
   container: { flex: 1, marginHorizontal: -spacing.lg },
   mapWrap: { backgroundColor: colors.surfaceAlt },
-  pin: { borderWidth: 3, borderColor: colors.surface, borderRadius: radius.pill, ...shadow.card },
-  pinStale: { opacity: 0.45 },
   recentreWrap: { position: 'absolute', top: spacing.md, right: spacing.md },
   recentre: {
     width: 44,
@@ -471,7 +572,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.card,
   },
   sheet: {
     flex: 1,
@@ -481,13 +581,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-    gap: spacing.md,
-    // Pushes the button to the bottom of whatever space is left. The tab bar is
-    // absolutely positioned (see app/(app)/index.tsx) so it no longer reserves flex
-    // space of its own; useTabBarInset's paddingBottom above is what keeps this
-    // clear of it instead.
-    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
+  sheetScroll: { flex: 1 },
+  sheetContent: { gap: spacing.md, paddingBottom: spacing.sm },
   // Taller than the visible 4px pill, so the pan gesture's touch target clears the
   // 44pt accessibility minimum tap targets get everywhere else in the app.
   grabberArea: { minHeight: 44, justifyContent: 'center', marginBottom: spacing.xs },
@@ -502,6 +599,19 @@ const styles = StyleSheet.create({
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sheetTitle: { flex: 1, gap: 2 },
   sub: { ...typography.caption, color: colors.muted },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 54,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+  },
+  codeCopy: { flex: 1 },
+  code: { ...typography.heading, color: colors.primaryDark, letterSpacing: 2 },
+  shareText: { ...typography.label, color: colors.primaryDark },
   live: {
     flexDirection: 'row',
     alignItems: 'center',

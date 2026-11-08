@@ -23,6 +23,22 @@ location with your party, and let everyone stop wondering whether you are okay.
 
 ---
 
+## Contents
+
+- [The problem](#the-problem)
+- [Where the idea came from](#where-the-idea-came-from)
+- [What it does](#what-it-does)
+- [Demo video](#demo-video)
+- [Built with](#built-with)
+- [Run the demo](#run-the-demo)
+- [How it is put together](#how-it-is-put-together)
+- [Testing](#testing)
+- [Deliberate simplifications](#deliberate-simplifications)
+- [What is next](#what-is-next)
+- [Conclusion](#conclusion)
+- [Acknowledgements](#acknowledgements)
+- [Licence and author](#licence-and-author)
+
 ## The problem
 
 Time on a trail is one of the best ways to lower stress. A hum of small worries chips
@@ -38,11 +54,11 @@ Trail's job is to quietly absorb that load, so the hike can do what hiking is fo
 Three cards, drawn at random in week one. Rather than fight them, Trail makes all three
 pull in the same direction.
 
-| Card                          | How Trail answers it                                                                                                                                                                  |
-| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Reduce Stress**             | The lens for every decision. The app never shouts, never nags, and does less rather than more.                                                                                        |
-| **Geolocation**               | The engine. Live party positions on a shared map, updated every ten seconds with a heartbeat so nobody's dot goes quietly stale.                                                      |
-| **No Traditional UI Buttons** | Gesture first. Swipe to save a trail, flick between screens, pull to refresh. A real button appears only where a tap has to be unambiguous: start a hike, save a trail, end tracking. |
+| Card                          | How Trail answers it                                                                                                                                                                      |
+| :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reduce Stress**             | The lens for every decision. The app never shouts, never nags, and does less rather than more.                                                                                            |
+| **Geolocation**               | The engine. Live party positions on a shared map, updated every ten seconds with a heartbeat so nobody's dot goes quietly stale.                                                          |
+| **No Traditional UI Buttons** | Gesture first. Swipe to save a trail, swipe to remove one, flick between screens. A real button appears only where a tap has to be unambiguous: start a hike, save a trail, end tracking. |
 
 On that last one: there is a tab bar, and that is a deliberate call. Gestures are the
 shortcut, the tab bar is the map. An app people open one-handed on a mountain does not
@@ -64,13 +80,19 @@ the pin is current.
 
 **Stay looked after.** The Today screen shows your party, your water, and an alerts strip
 that stays empty when nothing is wrong. When something is, it says so plainly: Sam has
-not checked in for seven minutes. Nadia's battery is at 12%.
+not checked in for two minutes. Nadia's battery is at 12%.
 
 **Drink water.** Calm reminders while a hike is running, on your own schedule. "Time for
 water", not "REMINDER: HYDRATE!".
 
 **Make it yours.** Email sign up with a password reset, a three slide onboarding that
-shows once and never again, and a profile photo you can change.
+shows once per account, and a profile photo you can change.
+
+## Demo video
+
+<!-- TODO: add the demo recording here, as a link or an embedded video. -->
+
+_Coming soon._
 
 ## Built with
 
@@ -165,14 +187,27 @@ npm run seed   # needs GOOGLE_APPLICATION_CREDENTIALS pointing at a service acco
 ### Trying the live map on your own
 
 A shared party map needs more than one person on it. `backend/simulate-hiker.ts` is a
-test harness that walks simulated hikers along a real trail path, writing positions to
+test harness that walks simulated hikers along a trail route, writing positions to
 Firestore every five seconds, so the live map can be demonstrated with a single phone.
 
-From `frontend/`, run `npm run simulate` with the Firestore group document ID supplied
-through its required `--group` option, plus `--members=2 --trail=lions-head`.
+Start a hike in the app, then run this from `frontend/` with the invite code shown on
+the Party tab:
 
-One of them pauses partway so the stale check-in alert has something real to fire on.
-Ctrl-C cleans up after itself.
+```bash
+npm run simulate -- --code=ABC123
+```
+
+The script writes with the Admin SDK, so it needs Google credentials for the project:
+either `GOOGLE_APPLICATION_CREDENTIALS` pointing at a service account key, or
+`gcloud auth application-default login`.
+
+The hikers follow your hike's trail. If you are not near that trail, they walk the same
+route starting from where you are, so everyone fits on one map. After 30 seconds one of
+them goes quiet for three minutes, so the stale alert fires at about the two minute mark
+and clears when they come back. Ctrl-C cleans up after itself.
+
+Optional flags: `--members=2`, `--trail=<id>`, `--speed=3`, `--quiet-after=30` and
+`--quiet-for=180`, both in seconds.
 
 ### Other commands
 
@@ -181,7 +216,7 @@ cd frontend
 npm run typecheck     # tsc, strict
 npm run lint          # eslint
 npm test              # unit tests
-npm run test:rules    # security rules against the Firestore emulator
+npm run test:rules    # security rules against the Firestore emulator (needs Java 21)
 ```
 
 ## How it is put together
@@ -218,12 +253,105 @@ own members, so somebody joining by code cannot query groups by `inviteCode`, be
 they are not a member yet. `inviteCodes` is a small public mirror that gets them from a
 code to a group id without opening the group itself up to the world.
 
+```mermaid
+erDiagram
+    USERS ||--o{ SAVED_TRAILS : keeps
+    TRAILS ||--o{ SAVED_TRAILS : "appears in"
+    USERS ||--o{ GROUPS : owns
+    USERS }o--o{ GROUPS : "is a member of"
+    TRAILS ||--o{ GROUPS : "is hiked by"
+    GROUPS ||--o{ POSITIONS : tracks
+    USERS ||--o{ POSITIONS : reports
+    GROUPS ||--|| INVITE_CODES : "is joined with"
+
+    USERS {
+        string uid PK
+        string displayName
+        string email
+        string photoURL
+        number hydrationGoalMl
+        number waterMl
+        string waterDate
+        boolean remindersEnabled
+        number waterIntervalMin
+        number restIntervalMin
+        timestamp createdAt
+    }
+    SAVED_TRAILS {
+        string trailId PK
+        timestamp savedAt
+        string notes
+    }
+    TRAILS {
+        string id PK
+        string name
+        string difficulty
+        number distanceM
+        number elevationGainM
+        string region
+        string description
+        string photoUrl
+        map location
+        array path
+    }
+    GROUPS {
+        string id PK
+        string name
+        string trailId FK
+        string ownerId FK
+        array memberIds
+        boolean active
+        string inviteCode FK
+        timestamp startedAt
+        timestamp endedAt
+    }
+    POSITIONS {
+        string uid PK
+        string displayName
+        map position
+        number accuracy
+        number batteryLevel
+        boolean moving
+        timestamp updatedAt
+    }
+    INVITE_CODES {
+        string code PK
+        string groupId FK
+        boolean active
+    }
+```
+
 ### Security
 
 Location data deserves rules you can actually trust, so they are tested rather than
-assumed. `backend/rules.test.ts` runs sixteen cases against the Firestore emulator on
-every push, covering things like: a non-member cannot read a group, a member cannot
-write somebody else's position, and only a hike's owner can retire its invite code.
+assumed. `backend/rules.test.ts` runs eighteen cases against the Firestore emulator in
+CI, covering things like: a non-member cannot read a group, a member cannot write
+somebody else's position, and only a hike's owner can retire its invite code.
+
+## Testing
+
+**135 unit tests** in 16 suites and **18 security rules tests** against the Firestore
+emulator, run in CI on every pull request and every push to `main`.
+
+| Scope                                    | Statements | Branches | Functions | Lines  |
+| :--------------------------------------- | :--------- | :------- | :-------- | :----- |
+| `src/lib`, every file                    | 80.55%     | 76.63%   | 70%       | 80.79% |
+| Whole app, every file in `app` and `src` | 39.8%      | 30.57%   | 36.55%    | 40.09% |
+
+The second row is low because most screens are drawn by native maps, gestures and
+animation, which unit tests cannot exercise. Those are checked by hand on a phone. The
+screen level tests cover what can break quietly: the swipe deck, notes, app state and
+the Party screen.
+
+To reproduce the numbers from `frontend/`:
+
+```bash
+npm test -- --coverage
+```
+
+```bash
+npm test -- --coverage "--collectCoverageFrom=src/**/*.{ts,tsx}" "--collectCoverageFrom=app/**/*.tsx"
+```
 
 ## Deliberate simplifications
 
@@ -233,14 +361,26 @@ I would rather name these than have them look like bugs.
   staying on Expo Go so anyone can run this from a QR code was worth more to me.
 - **Only the hike owner can end a hike.** The rules let a person add their own uid to a
   group and never remove one, so there is no leave path to offer without loosening them.
-- **Recent activity covers saves and hike starts.** There is no per member join
-  timestamp in the schema, so "X joined" is left out rather than faked.
 - **Trail routes are simplified polylines**, not recorded GPX tracks.
 
 ## What is next
 
-Plant and bird identification from a photo, offline trail maps, a full survival tips
-library, and a proper end of hike summary.
+Plant and bird identification from a photo, offline trail maps, and a full survival tips
+library.
+
+## Conclusion
+
+### What went well
+
+TODO
+
+### What I would do differently
+
+TODO
+
+### What I learned
+
+TODO
 
 ## Acknowledgements
 
@@ -257,7 +397,17 @@ library, and a proper end of hike summary.
   by Software Mansion, for the gesture and animation work.
 - **Trail data** for the Cape Town routes cross referenced against
   [SANParks](https://www.sanparks.org) and public trail guides.
+- **AI tools:** [Claude Code](https://claude.com/claude-code) by Anthropic, used for the
+  final bug audit, fixes, tests and documentation.
+  <!-- TODO: list any other AI tools you used, and for what. -->
 - **DV300 lecturer:** Tsungai Katsuro.
+
+## Licence and author
+
+Released under the [MIT Licence](LICENSE).
+
+Built by **Victor du Preez**: [victor.dupreez0@gmail.com](mailto:victor.dupreez0@gmail.com)
+· [LinkedIn](https://www.linkedin.com/in/victor-du-preez-47475a321)
 
 ---
 

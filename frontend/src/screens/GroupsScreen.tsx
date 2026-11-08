@@ -2,17 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MapView, { Polyline, type Region } from 'react-native-maps';
 import Animated, {
   Easing,
-  interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -29,6 +25,7 @@ import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
 import {
   breadcrumbSegments,
+  displayNameOf,
   hexWithAlpha,
   initialsOf,
   insideFrame,
@@ -75,7 +72,7 @@ export function GroupsScreen() {
   const { status, retry } = useLiveLocation(
     activeGroup?.id ?? null,
     user?.uid ?? null,
-    user?.displayName || 'Hiker',
+    displayNameOf(user),
   );
 
   useEffect(() => {
@@ -151,7 +148,7 @@ export function GroupsScreen() {
 
   const trail = activeGroup ? trails.find((t) => t.id === activeGroup.trailId) : undefined;
 
-  if (!activeGroup || !trail) {
+  if (!activeGroup) {
     return (
       <View style={[styles.emptyContainer, { paddingBottom: tabBarInset }]}>
         {syncFailed ? (
@@ -187,9 +184,13 @@ export function GroupsScreen() {
     );
   }
 
+  // An admin can delete a trail while it's being hiked. The hike carries on without
+  // its route, and can still be ended.
+  const center = trail?.location ??
+    Object.values(partyPositions)[0]?.position ?? { latitude: -33.9359, longitude: 18.3875 };
   const region: Region = {
-    latitude: trail.location.latitude,
-    longitude: trail.location.longitude,
+    latitude: center.latitude,
+    longitude: center.longitude,
     latitudeDelta: 0.015,
     longitudeDelta: 0.015,
   };
@@ -280,12 +281,14 @@ export function GroupsScreen() {
               showsCompass={false}
               toolbarEnabled={false}
             >
-              <Polyline
-                coordinates={trail.path}
-                strokeColor={colors.primary}
-                strokeWidth={5}
-                lineCap="round"
-              />
+              {trail ? (
+                <Polyline
+                  coordinates={trail.path}
+                  strokeColor={colors.primary}
+                  strokeWidth={5}
+                  lineCap="round"
+                />
+              ) : null}
               {members
                 .filter((m) => m.pos)
                 .flatMap((m) =>
@@ -332,7 +335,6 @@ export function GroupsScreen() {
         ) : null}
 
         <GlassSurface style={styles.sheet} solid>
-          <CompassPull onRecentre={recentre} reduced={reduced} />
           <ScrollView
             style={styles.sheetScroll}
             contentContainerStyle={styles.sheetContent}
@@ -344,7 +346,7 @@ export function GroupsScreen() {
                   {activeGroup.name}
                 </Text>
                 <Text style={styles.sub} numberOfLines={1}>
-                  {trail.name}
+                  {trail?.name ?? 'Trail no longer listed'}
                 </Text>
               </View>
               {status === 'tracking' ? <LivePill reduced={reduced} /> : null}
@@ -477,59 +479,6 @@ export function GroupsScreen() {
   );
 }
 
-const PULL_THRESHOLD = 50;
-const PULL_MAX = 90;
-
-// Positions are already live via Firestore's onSnapshot, so there's nothing to
-// refetch - "pull to refresh" here is a gesture-first shortcut to the same recentre
-// the button above already does, not a spinner over a network call. Lives on the
-// grabber rather than the map itself: a pan gesture on the MapView would fight its
-// own native pan/drag handling, and the grabber is already a "pull" affordance with
-// nothing else claiming it today.
-function CompassPull({ onRecentre, reduced }: { onRecentre: () => void; reduced: boolean }) {
-  const pull = useSharedValue(0);
-
-  const recentre = () => {
-    haptics.medium();
-    onRecentre();
-  };
-
-  const pan = Gesture.Pan()
-    .activeOffsetY(8)
-    .onUpdate((e) => {
-      pull.value = Math.max(0, Math.min(PULL_MAX, e.translationY));
-    })
-    .onEnd(() => {
-      if (pull.value >= PULL_THRESHOLD) runOnJS(recentre)();
-      // "Settles north": always returns to 0, animated unless reduced motion asks
-      // for an instant jump instead.
-      pull.value = reduced ? 0 : withSpring(0, { damping: 14, stiffness: 140 });
-    });
-
-  const needleStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pull.value, [0, PULL_THRESHOLD], [0, 1], 'clamp'),
-    transform: [
-      { translateY: pull.value * 0.5 },
-      { rotate: `${interpolate(pull.value, [0, PULL_MAX], [0, 200], 'clamp')}deg` },
-    ],
-  }));
-
-  return (
-    <GestureDetector gesture={pan}>
-      <View
-        accessible
-        accessibilityLabel="Pull down on the handle to recentre the map"
-        style={styles.grabberArea}
-      >
-        <View style={styles.grabber} />
-        <Animated.View style={[styles.compassNeedle, needleStyle]} pointerEvents="none">
-          <Ionicons name="navigate" size={16} color={colors.primary} />
-        </Animated.View>
-      </View>
-    </GestureDetector>
-  );
-}
-
 // A slow breathing pulse rather than a static dot, so "Live" reads as an ongoing
 // connection rather than a fixed label. Timed at a comfortable resting-breath 2s,
 // not literally synced to the 30s write heartbeat (that would look broken for 28
@@ -579,23 +528,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     paddingBottom: spacing.md,
     gap: spacing.sm,
   },
   sheetScroll: { flex: 1 },
   sheetContent: { gap: spacing.md, paddingBottom: spacing.sm },
-  // Taller than the visible 4px pill, so the pan gesture's touch target clears the
-  // 44pt accessibility minimum tap targets get everywhere else in the app.
-  grabberArea: { minHeight: 44, justifyContent: 'center', marginBottom: spacing.xs },
-  grabber: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-  },
-  compassNeedle: { position: 'absolute', alignSelf: 'center', top: '100%' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sheetTitle: { flex: 1, gap: 2 },
   sub: { ...typography.caption, color: colors.muted },

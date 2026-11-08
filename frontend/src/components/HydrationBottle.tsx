@@ -15,7 +15,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { useMotion } from '../hooks/useMotion';
 import { haptics } from '../lib/haptics';
-import { fillRatio, todayKey, waterToday } from '../lib/hydration';
+import { fillRatio, GOAL_OPTIONS_L, todayKey, waterToday } from '../lib/hydration';
 import { hexWithAlpha } from '../lib/party';
 import { sineWavePath } from '../lib/wave';
 import { useAppState } from '../state/AppState';
@@ -28,7 +28,6 @@ import { Skeleton } from './ui/Skeleton';
 const BOTTLE_W = 132;
 const BOTTLE_H = 168;
 const LOG_ML = 250;
-const GOAL_OPTIONS_L = [1.5, 2, 2.5, 3];
 const RIPPLE_SIZE = 120;
 
 // The dashboard centrepiece: a liquid-fill tracker. Wave crests are static SVG paths

@@ -31,6 +31,12 @@ export function memberColor(uid: string): string {
   return memberPalette[Math.abs(hash) % memberPalette.length];
 }
 
+// One answer everywhere. Accounts created before names were collected, like the demo
+// admin, fall back to the start of their email.
+export function displayNameOf(user: { displayName: string | null; email: string | null } | null) {
+  return user?.displayName || user?.email?.split('@')[0] || 'Hiker';
+}
+
 export function initialsOf(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
 }

@@ -107,6 +107,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [syncFailed, setSyncFailed] = useState(false);
   const [syncAttempt, setSyncAttempt] = useState(0);
   const [partyTabRequest, setPartyTabRequest] = useState(0);
+  // Firebase updates the name on the existing user object and doesn't announce it, so
+  // this is what tells screens to read the new name after sign-up.
+  const [profileVersion, setProfileVersion] = useState(0);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -312,6 +315,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       },
       signUp: async (name, email, password) => {
         await signUp(name, email, password);
+        setProfileVersion((n) => n + 1);
       },
       logout: () => signOutNow(),
       savedTrailIds,
@@ -376,11 +380,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       partyTabRequest,
       showPartyTab: () => setPartyTabRequest((n) => n + 1),
     };
+    // profileVersion isn't read inside, it's here so a name change reaches the screens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     hasOnboarded,
     onboardingReady,
     authReady,
     user,
+    profileVersion,
     trails,
     savedTrailIds,
     savedTrailMeta,

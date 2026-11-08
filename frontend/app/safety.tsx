@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '../src/components/ui/Card';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { colors } from '../src/theme/colors';
 import { radius, spacing } from '../src/theme/spacing';
 import { typography } from '../src/theme/typography';
+
+const RESCUE_NUMBER = '086 110 6417';
 
 const sections = [
   {
@@ -32,8 +34,8 @@ const sections = [
     title: 'Your location',
     tips: [
       'Your live position is only visible to people in your group.',
-      'Sharing stops the moment you end a hike.',
-      'A watcher at home can follow along without joining the hike.',
+      'Sharing stops as soon as the hike ends.',
+      'Trail only tracks you while the app is open.',
     ],
   },
 ] as const;
@@ -74,13 +76,18 @@ export default function Safety() {
           </Card>
         ))}
 
-        <View style={styles.emergency}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Call mountain rescue on ${RESCUE_NUMBER}`}
+          onPress={() => Linking.openURL(`tel:${RESCUE_NUMBER.replace(/\s/g, '')}`)}
+          style={({ pressed }) => [styles.emergency, pressed && styles.pressed]}
+        >
           <Ionicons name="call-outline" size={19} color={colors.danger} />
           <View style={styles.emergencyText}>
             <Text style={styles.emergencyTitle}>Mountain rescue</Text>
-            <Text style={styles.emergencyMeta}>South Africa · 086 110 6417</Text>
+            <Text style={styles.emergencyMeta}>South Africa · {RESCUE_NUMBER}</Text>
           </View>
-        </View>
+        </Pressable>
       </ScrollView>
     </ScreenContainer>
   );
@@ -125,6 +132,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.lg,
   },
+  pressed: { opacity: 0.7 },
   emergencyText: { flex: 1, gap: 1 },
   emergencyTitle: { ...typography.label, color: '#7E2E1C' },
   emergencyMeta: { ...typography.caption, color: '#9C4632' },

@@ -18,6 +18,8 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useTabBarInset } from '../hooks/useTabBarInset';
+import { GOAL_OPTIONS_L } from '../lib/hydration';
+import { displayNameOf } from '../lib/party';
 import { removeAvatar, uploadAvatar } from '../lib/profile';
 import { requestPermission } from '../lib/reminders';
 import { useAppState } from '../state/AppState';
@@ -37,11 +39,10 @@ export function ProfileScreen() {
   const {
     user,
     logout,
-    savedTrailIds,
     userDoc,
     setReminderSettings,
+    setHydrationGoal,
     isAdmin,
-    trails,
     replayOnboarding,
   } = useAppState();
   const tabBarInset = useTabBarInset();
@@ -51,15 +52,20 @@ export function ProfileScreen() {
   const [avatarProgress, setAvatarProgress] = useState(0);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [logoutError, setLogoutError] = useState<string | null>(null);
-  const saved = trails.filter((t) => savedTrailIds.includes(t.id));
-  const totalKm = saved.reduce((sum, t) => sum + t.distanceM, 0) / 1000;
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const hydrationGoalMl = userDoc?.hydrationGoalMl ?? DEFAULT_HYDRATION_GOAL_ML;
   const remindersEnabled = userDoc?.remindersEnabled ?? true;
   const waterIntervalMin = userDoc?.waterIntervalMin ?? 30;
   const restIntervalMin = userDoc?.restIntervalMin ?? 90;
   const photoURL = userDoc?.photoURL ?? user?.photoURL ?? null;
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Hiker';
+  // Settings save in the background, but a failure still has to be said out loud.
+  const saveSetting = (write: Promise<void>) => {
+    setSettingsError(null);
+    write.catch(() => setSettingsError("Couldn't save that. Check your connection and try again."));
+  };
+
+  const displayName = displayNameOf(user);
   const initials = displayName.slice(0, 2).toUpperCase();
   const email = user?.email ?? '';
 
@@ -132,9 +138,7 @@ export function ProfileScreen() {
   const toggleReminders = async (next: boolean) => {
     if (!next) {
       setPermissionDenied(false);
-      setReminderSettings({ remindersEnabled: false }).catch((err) =>
-        console.warn('setReminderSettings failed', err),
-      );
+      saveSetting(setReminderSettings({ remindersEnabled: false }));
       return;
     }
     const granted = await requestPermission();
@@ -143,9 +147,7 @@ export function ProfileScreen() {
       return;
     }
     setPermissionDenied(false);
-    setReminderSettings({ remindersEnabled: true }).catch((err) =>
-      console.warn('setReminderSettings failed', err),
-    );
+    saveSetting(setReminderSettings({ remindersEnabled: true }));
   };
 
   return (
@@ -190,39 +192,18 @@ export function ProfileScreen() {
         <Text style={styles.email}>{email}</Text>
       </View>
 
-      <View style={styles.statRow}>
-        <Card style={styles.statCard}>
-          <Text style={typography.title}>{saved.length}</Text>
-          <Text style={styles.statLabel}>Saved</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={typography.title}>{totalKm.toFixed(0)}</Text>
-          <Text style={styles.statLabel}>km planned</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={typography.title}>{(hydrationGoalMl / 1000).toFixed(1)}</Text>
-          <Text style={styles.statLabel}>L goal</Text>
-        </Card>
-      </View>
-
       <Card style={styles.menu}>
-        <Row
-          icon="water-outline"
-          label="Hydration goal"
-          value={`${(hydrationGoalMl / 1000).toFixed(1)} L / day`}
-        />
         {isAdmin ? (
           <>
-            <View style={styles.divider} />
             <Row
               icon="settings-outline"
               label="Admin"
               value="Manage trails"
               onPress={() => router.push('/admin')}
             />
+            <View style={styles.divider} />
           </>
         ) : null}
-        <View style={styles.divider} />
         <Row
           icon="shield-checkmark-outline"
           label="Safety"
@@ -240,6 +221,19 @@ export function ProfileScreen() {
           }}
         />
       </Card>
+
+      <View>
+        <SectionHeader title="Hydration goal" subtitle="How much water to aim for each day" />
+        <Card>
+          <PillPicker
+            value={hydrationGoalMl}
+            options={GOAL_OPTIONS_L.map((litres) => litres * 1000)}
+            format={(ml) => `${ml / 1000} L`}
+            describe={(ml) => `${ml / 1000} litres a day`}
+            onChange={(ml) => saveSetting(setHydrationGoal(ml))}
+          />
+        </Card>
+      </View>
 
       <View>
         <SectionHeader title="Reminders" subtitle="Calm nudges while a hike is active" />
@@ -279,26 +273,22 @@ export function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.intervalRow}>
                 <Text style={styles.intervalLabel}>Water every</Text>
-                <IntervalPicker
+                <PillPicker
                   value={waterIntervalMin}
                   options={WATER_INTERVAL_OPTIONS}
-                  onChange={(v) =>
-                    setReminderSettings({ waterIntervalMin: v }).catch((err) =>
-                      console.warn('setReminderSettings failed', err),
-                    )
-                  }
+                  format={String}
+                  describe={minutesLabel}
+                  onChange={(v) => saveSetting(setReminderSettings({ waterIntervalMin: v }))}
                 />
               </View>
               <View style={styles.intervalRow}>
                 <Text style={styles.intervalLabel}>Rest every</Text>
-                <IntervalPicker
+                <PillPicker
                   value={restIntervalMin}
                   options={REST_INTERVAL_OPTIONS}
-                  onChange={(v) =>
-                    setReminderSettings({ restIntervalMin: v }).catch((err) =>
-                      console.warn('setReminderSettings failed', err),
-                    )
-                  }
+                  format={String}
+                  describe={minutesLabel}
+                  onChange={(v) => saveSetting(setReminderSettings({ restIntervalMin: v }))}
                 />
               </View>
             </>
@@ -306,6 +296,7 @@ export function ProfileScreen() {
         </Card>
       </View>
 
+      {settingsError ? <Text style={styles.errorText}>{settingsError}</Text> : null}
       {logoutError ? <Text style={styles.errorText}>{logoutError}</Text> : null}
       <Button
         label="Log out"
@@ -318,13 +309,19 @@ export function ProfileScreen() {
   );
 }
 
-function IntervalPicker({
+const minutesLabel = (minutes: number) => `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+
+function PillPicker({
   value,
   options,
+  format,
+  describe,
   onChange,
 }: {
   value: number;
   options: number[];
+  format: (v: number) => string;
+  describe: (v: number) => string;
   onChange: (v: number) => void;
 }) {
   return (
@@ -336,12 +333,12 @@ function IntervalPicker({
             key={opt}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`${opt} ${opt === 1 ? 'minute' : 'minutes'}`}
+            accessibilityLabel={describe(opt)}
             onPress={() => onChange(opt)}
             hitSlop={8}
             style={[styles.pill, active && styles.pillActive]}
           >
-            <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt}</Text>
+            <Text style={[styles.pillText, active && styles.pillTextActive]}>{format(opt)}</Text>
           </Pressable>
         );
       })}
@@ -403,9 +400,6 @@ const styles = StyleSheet.create({
   },
   avatarProgressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.primary },
   errorText: { ...typography.caption, color: colors.danger },
-  statRow: { flexDirection: 'row', gap: spacing.sm },
-  statCard: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: spacing.md },
-  statLabel: { ...typography.caption, color: colors.muted },
   menu: { padding: 0, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   rowPressed: { backgroundColor: colors.surfaceAlt },

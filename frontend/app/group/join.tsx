@@ -62,9 +62,10 @@ export default function JoinGroup() {
       <Field
         label="Invite code"
         icon="key-outline"
-        placeholder="TRAIL-42"
+        placeholder="ABC123"
         autoCapitalize="characters"
         autoCorrect={false}
+        maxLength={6}
         value={code}
         onChangeText={setCode}
       />

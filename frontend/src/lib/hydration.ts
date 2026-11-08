@@ -1,6 +1,8 @@
 // Pure hydration maths, kept free of any firebase import so it stays unit testable
 // under jest-expo (same split as party.ts).
 
+export const GOAL_OPTIONS_L = [1.5, 2, 2.5, 3];
+
 // Local date, not UTC: a hiker logging water at 23:40 and again at 00:10 is
 // logging on the same evening, not two different days by a server clock.
 export function todayKey(d: Date = new Date()): string {

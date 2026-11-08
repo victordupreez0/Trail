@@ -14,6 +14,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { fillRatio, todayKey, waterToday } from '../lib/hydration';
 import {
+  displayNameOf,
   initialsOf,
   lastSeenLabel,
   memberColor,
@@ -29,17 +30,15 @@ import { typography } from '../theme/typography';
 const HYDRATION_BEHIND_HOURS = 2;
 const HYDRATION_BEHIND_PCT = 0.4;
 
+function greeting(hour: number): string {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function DashboardScreen() {
-  const {
-    user,
-    activeGroup,
-    groupLoading,
-    savedTrailIds,
-    savedTrailMeta,
-    userDoc,
-    trails,
-    remindersBlocked,
-  } = useAppState();
+  const { user, activeGroup, groupLoading, savedTrailIds, userDoc, trails, remindersBlocked } =
+    useAppState();
   const partyPositions = usePartyPositions();
   const tabBarInset = useTabBarInset();
   const [now, setNow] = useState(() => Date.now());
@@ -52,42 +51,11 @@ export function DashboardScreen() {
   const activeTrail = activeGroup ? trails.find((t) => t.id === activeGroup.trailId) : undefined;
   const saved = trails.filter((t) => savedTrailIds.includes(t.id));
 
-  const firstName = (user?.displayName || 'Hiker').split(' ')[0];
+  const firstName = displayNameOf(user).split(' ')[0];
   const initials = initialsOf(firstName);
   const goalMl = userDoc?.hydrationGoalMl ?? 2000;
   const todayWaterMl = waterToday(userDoc?.waterMl ?? 0, userDoc?.waterDate ?? null, todayKey());
   const hydrationPct = fillRatio(todayWaterMl, goalMl);
-
-  // Trail saves and hike starts are the two event types with a real timestamp in the
-  // schema. There's no per-member join time stored anywhere, so "member joined" from
-  // the brief's example is left out rather than faked.
-  const events: {
-    key: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    text: string;
-    atMs: number;
-  }[] = [];
-  for (const id of savedTrailIds) {
-    const savedAt = savedTrailMeta[id]?.savedAt;
-    const t = trails.find((tr) => tr.id === id);
-    if (savedAt && t) {
-      events.push({
-        key: `save-${id}`,
-        icon: 'bookmark',
-        text: `Saved ${t.name}`,
-        atMs: savedAt.toMillis(),
-      });
-    }
-  }
-  if (activeGroup?.startedAt) {
-    events.push({
-      key: `start-${activeGroup.id}`,
-      icon: 'flag',
-      text: `Started ${activeTrail?.name ?? 'a hike'}`,
-      atMs: activeGroup.startedAt.toMillis(),
-    });
-  }
-  const recentEvents = events.sort((a, b) => b.atMs - a.atMs).slice(0, 3);
 
   const alerts: PartyAlert[] = [];
   if (activeGroup && user) {
@@ -114,10 +82,15 @@ export function DashboardScreen() {
     >
       <View style={styles.greetingRow}>
         <View style={styles.greeting}>
-          <Text style={styles.eyebrow}>Good morning</Text>
+          <Text style={styles.eyebrow}>{greeting(new Date(now).getHours())}</Text>
           <Text style={typography.display}>{firstName}</Text>
         </View>
-        <Avatar initials={initials} color={colors.primary} size={46} />
+        <Avatar
+          initials={initials}
+          color={colors.primary}
+          size={46}
+          photoURL={userDoc?.photoURL ?? user?.photoURL}
+        />
       </View>
 
       {groupLoading ? (
@@ -150,8 +123,12 @@ export function DashboardScreen() {
       ) : (
         <Card style={styles.restCard}>
           <Ionicons name="leaf-outline" size={26} color={colors.primary} />
-          <Text style={typography.heading}>No hike today</Text>
-          <Text style={styles.restBody}>Rest is part of it. Start one when you&apos;re ready.</Text>
+          <Text style={typography.heading}>{activeGroup ? 'On a hike' : 'No hike today'}</Text>
+          <Text style={styles.restBody}>
+            {activeGroup
+              ? 'Your party is on the Party tab.'
+              : 'Rest is part of it. Start one when you’re ready.'}
+          </Text>
         </Card>
       )}
 
@@ -175,14 +152,14 @@ export function DashboardScreen() {
           <Card style={styles.statCard}>
             <View style={styles.statHead}>
               <Ionicons name="walk-outline" size={17} color={colors.primary} />
-              <Text style={styles.statLabel}>Distance</Text>
+              <Text style={styles.statLabel}>Trail</Text>
             </View>
             <CountUp
               value={activeTrail ? activeTrail.distanceM / 1000 : 0}
               format={(n) => n.toFixed(1)}
               style={typography.title}
             />
-            <Text style={styles.statFoot}>km today</Text>
+            <Text style={styles.statFoot}>km long</Text>
           </Card>
         </View>
       ) : (
@@ -261,23 +238,6 @@ export function DashboardScreen() {
         </View>
       ) : null}
 
-      {recentEvents.length > 0 ? (
-        <View>
-          <SectionHeader title="Recent activity" />
-          <Card style={styles.partyCard}>
-            {recentEvents.map((e, i) => (
-              <View key={e.key}>
-                <View style={styles.eventRow}>
-                  <Ionicons name={e.icon} size={16} color={colors.primary} />
-                  <Text style={styles.eventText}>{e.text}</Text>
-                </View>
-                {i < recentEvents.length - 1 ? <View style={styles.divider} /> : null}
-              </View>
-            ))}
-          </Card>
-        </View>
-      ) : null}
-
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Safety tips before you head out"
@@ -339,8 +299,6 @@ const styles = StyleSheet.create({
   partyText: { flex: 1, gap: 1 },
   partyMeta: { ...typography.caption, color: colors.muted },
   battery: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  eventRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  eventText: { ...typography.label, flex: 1 },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

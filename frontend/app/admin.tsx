@@ -6,6 +6,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Button } from '../src/components/ui/Button';
 import { Card } from '../src/components/ui/Card';
 import { Field } from '../src/components/ui/Field';
+import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import {
   createAdminTrail,
   deleteAdminTrail,
@@ -14,11 +15,6 @@ import {
   type AdminTrail,
   type AdminTrailInput,
 } from '../src/lib/adminTrails';
-import {
-  deleteTrailRecommendation,
-  subscribeToTrailRecommendations,
-  type TrailRecommendation,
-} from '../src/lib/trailRecommendations';
 import { useAppState } from '../src/state/AppState';
 import { colors } from '../src/theme/colors';
 import { radius, spacing } from '../src/theme/spacing';
@@ -108,10 +104,7 @@ function toTrailInput(form: Form): AdminTrailInput | null {
 export default function Admin() {
   const { isAdmin } = useAppState();
   const [trails, setTrails] = useState<AdminTrail[]>([]);
-  const [recommendations, setRecommendations] = useState<TrailRecommendation[]>([]);
   const [editing, setEditing] = useState<AdminTrail | null>(null);
-  const [approvingRecommendation, setApprovingRecommendation] =
-    useState<TrailRecommendation | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,40 +124,18 @@ export default function Admin() {
     );
   }, [isAdmin]);
 
-  useEffect(() => {
-    if (!isAdmin) return;
-    return subscribeToTrailRecommendations(setRecommendations, () =>
-      setError("Couldn't load trail recommendations."),
-    );
-  }, [isAdmin]);
-
   const change = (key: keyof Form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   const beginCreate = () => {
     setEditing(null);
-    setApprovingRecommendation(null);
     setForm(emptyForm());
     setError(null);
   };
 
   const beginEdit = (trail: AdminTrail) => {
     setEditing(trail);
-    setApprovingRecommendation(null);
     setForm(formFromTrail(trail));
-    setError(null);
-  };
-
-  const beginReview = (recommendation: TrailRecommendation) => {
-    setEditing(null);
-    setApprovingRecommendation(recommendation);
-    setForm({
-      ...emptyForm(),
-      name: recommendation.name,
-      region: recommendation.region,
-      description: recommendation.description,
-      photoUrl: recommendation.photoUrl,
-    });
     setError(null);
   };
 
@@ -179,7 +150,6 @@ export default function Admin() {
     try {
       if (editing) await updateAdminTrail(editing.id, input);
       else await createAdminTrail(input);
-      if (approvingRecommendation) await deleteTrailRecommendation(approvingRecommendation.id);
       beginCreate();
     } catch {
       setError("Couldn't save this trail. Check that your account has admin access.");
@@ -212,174 +182,133 @@ export default function Admin() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <View>
-          <Text style={typography.title}>Trail admin</Text>
-          <Text style={styles.muted}>Create, update, and remove catalogue trails.</Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close admin panel"
-          onPress={() => router.back()}
-          hitSlop={10}
-        >
-          <Ionicons name="close" size={24} color={colors.muted} />
-        </Pressable>
-      </View>
-
-      <Card style={styles.form}>
-        <Text style={styles.formTitle}>
-          {editing
-            ? `Edit ${editing.name}`
-            : approvingRecommendation
-              ? `Review ${approvingRecommendation.name}`
-              : 'New trail'}
-        </Text>
-        <Field
-          label="Trail name"
-          value={form.name}
-          onChangeText={(value) => change('name', value)}
-        />
-        <DifficultyPicker
-          value={form.difficulty}
-          onChange={(value) => change('difficulty', value)}
-        />
-        <Field
-          label="Distance (km)"
-          keyboardType="decimal-pad"
-          value={form.distanceKm}
-          onChangeText={(value) => change('distanceKm', value)}
-        />
-        <Field
-          label="Elevation gain (m)"
-          keyboardType="number-pad"
-          value={form.elevationM}
-          onChangeText={(value) => change('elevationM', value)}
-        />
-        <Field
-          label="Region"
-          value={form.region}
-          onChangeText={(value) => change('region', value)}
-        />
-        <Field
-          label="Description"
-          multiline
-          value={form.description}
-          onChangeText={(value) => change('description', value)}
-          style={styles.multiline}
-        />
-        <Field
-          label="Photo URL"
-          autoCapitalize="none"
-          keyboardType="url"
-          value={form.photoUrl}
-          onChangeText={(value) => change('photoUrl', value)}
-        />
-        <Field
-          label="Latitude"
-          keyboardType="decimal-pad"
-          value={form.latitude}
-          onChangeText={(value) => change('latitude', value)}
-        />
-        <Field
-          label="Longitude"
-          keyboardType="decimal-pad"
-          value={form.longitude}
-          onChangeText={(value) => change('longitude', value)}
-        />
-        <Field
-          label="Route points"
-          placeholder="-33.94,18.38; -33.93,18.39"
-          value={form.path}
-          onChangeText={(value) => change('path', value)}
-        />
-        <Text style={styles.help}>
-          Separate latitude/longitude points with semicolons. Use at least two.
-        </Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button
-          label={editing ? 'Save changes' : 'Create trail'}
-          icon={editing ? 'save-outline' : 'add'}
-          onPress={save}
-          loading={saving}
-        />
-        {editing ? <Button label="Cancel edit" variant="ghost" onPress={beginCreate} /> : null}
-      </Card>
-
-      {recommendations.length ? (
-        <View style={styles.queue}>
-          <View style={styles.listHeader}>
-            <Text style={typography.heading}>Recommendations</Text>
-            <Text style={styles.muted}>{recommendations.length} waiting</Text>
-          </View>
-          {recommendations.map((recommendation) => (
-            <Card key={recommendation.id} style={styles.recommendation}>
-              <View style={styles.trailCopy}>
-                <Text style={typography.label}>{recommendation.name}</Text>
-                <Text style={styles.muted}>
-                  {recommendation.region} · from {recommendation.authorName}
-                </Text>
-                <Text style={styles.recommendationDescription} numberOfLines={2}>
-                  {recommendation.description}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Review ${recommendation.name}`}
-                onPress={() => beginReview(recommendation)}
-                hitSlop={8}
-              >
-                <Ionicons name="arrow-up-outline" size={20} color={colors.primary} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Delete recommendation for ${recommendation.name}`}
-                onPress={() =>
-                  deleteTrailRecommendation(recommendation.id).catch(() =>
-                    setError("Couldn't remove this recommendation."),
-                  )
-                }
-                hitSlop={8}
-              >
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              </Pressable>
-            </Card>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.listHeader}>
-        <Text style={typography.heading}>Catalogue</Text>
-        <Text style={styles.muted}>{loading ? 'Loading…' : `${trails.length} trails`}</Text>
-      </View>
-      {trails.map((trail) => (
-        <Card key={trail.id} style={styles.trail}>
-          <View style={styles.trailCopy}>
-            <Text style={typography.label}>{trail.name}</Text>
-            <Text style={styles.muted} numberOfLines={1}>
-              {trail.region} · {(trail.distanceM / 1000).toFixed(1)} km
-            </Text>
+    <ScreenContainer>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={typography.title}>Trail admin</Text>
+            <Text style={styles.muted}>Create, update, and remove catalogue trails.</Text>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Edit ${trail.name}`}
-            onPress={() => beginEdit(trail)}
-            hitSlop={8}
+            accessibilityLabel="Close admin panel"
+            onPress={() => router.back()}
+            hitSlop={10}
           >
-            <Ionicons name="create-outline" size={20} color={colors.primary} />
+            <Ionicons name="close" size={24} color={colors.muted} />
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${trail.name}`}
-            onPress={() => remove(trail)}
-            hitSlop={8}
-          >
-            <Ionicons name="trash-outline" size={20} color={colors.danger} />
-          </Pressable>
+        </View>
+
+        <Card style={styles.form}>
+          <Text style={styles.formTitle}>{editing ? `Edit ${editing.name}` : 'New trail'}</Text>
+          <Field
+            label="Trail name"
+            value={form.name}
+            onChangeText={(value) => change('name', value)}
+          />
+          <DifficultyPicker
+            value={form.difficulty}
+            onChange={(value) => change('difficulty', value)}
+          />
+          <Field
+            label="Distance (km)"
+            keyboardType="decimal-pad"
+            value={form.distanceKm}
+            onChangeText={(value) => change('distanceKm', value)}
+          />
+          <Field
+            label="Elevation gain (m)"
+            keyboardType="number-pad"
+            value={form.elevationM}
+            onChangeText={(value) => change('elevationM', value)}
+          />
+          <Field
+            label="Region"
+            value={form.region}
+            onChangeText={(value) => change('region', value)}
+          />
+          <Field
+            label="Description"
+            multiline
+            value={form.description}
+            onChangeText={(value) => change('description', value)}
+            style={styles.multiline}
+          />
+          <Field
+            label="Photo URL"
+            autoCapitalize="none"
+            keyboardType="url"
+            value={form.photoUrl}
+            onChangeText={(value) => change('photoUrl', value)}
+          />
+          <Field
+            label="Latitude"
+            keyboardType="decimal-pad"
+            value={form.latitude}
+            onChangeText={(value) => change('latitude', value)}
+          />
+          <Field
+            label="Longitude"
+            keyboardType="decimal-pad"
+            value={form.longitude}
+            onChangeText={(value) => change('longitude', value)}
+          />
+          <Field
+            label="Route points"
+            placeholder="-33.94,18.38; -33.93,18.39"
+            value={form.path}
+            onChangeText={(value) => change('path', value)}
+          />
+          <Text style={styles.help}>
+            Separate latitude/longitude points with semicolons. Use at least two.
+          </Text>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button
+            label={editing ? 'Save changes' : 'Create trail'}
+            icon={editing ? 'save-outline' : 'add'}
+            onPress={save}
+            loading={saving}
+          />
+          {editing ? <Button label="Cancel edit" variant="ghost" onPress={beginCreate} /> : null}
         </Card>
-      ))}
-    </ScrollView>
+
+        <View style={styles.listHeader}>
+          <Text style={typography.heading}>Catalogue</Text>
+          <Text style={styles.muted}>{loading ? 'Loading…' : `${trails.length} trails`}</Text>
+        </View>
+        {trails.map((trail) => (
+          <Card key={trail.id} style={styles.trail}>
+            <View style={styles.trailCopy}>
+              <Text style={typography.label}>{trail.name}</Text>
+              <Text style={styles.muted} numberOfLines={1}>
+                {trail.region} · {(trail.distanceM / 1000).toFixed(1)} km
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${trail.name}`}
+              onPress={() => beginEdit(trail)}
+              hitSlop={8}
+            >
+              <Ionicons name="create-outline" size={20} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${trail.name}`}
+              onPress={() => remove(trail)}
+              hitSlop={8}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </Pressable>
+          </Card>
+        ))}
+      </ScrollView>
+    </ScreenContainer>
   );
 }
 
@@ -413,7 +342,7 @@ function DifficultyPicker({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
+  container: { paddingTop: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -442,9 +371,6 @@ const styles = StyleSheet.create({
   listHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   trail: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   trailCopy: { flex: 1, gap: 2 },
-  queue: { gap: spacing.sm },
-  recommendation: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  recommendationDescription: { ...typography.caption, color: colors.text },
   denied: {
     flex: 1,
     justifyContent: 'center',

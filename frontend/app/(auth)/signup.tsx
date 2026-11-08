@@ -78,7 +78,7 @@ export default function Signup() {
             <Field
               label="Password"
               icon="lock-closed-outline"
-              placeholder="At least 8 characters"
+              placeholder="At least 6 characters"
               secureTextEntry
               value={password}
               onChangeText={setPassword}

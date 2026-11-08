@@ -1,31 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { NoteEditor } from '../components/NoteEditor';
 import { TrailCard } from '../components/TrailCard';
-import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Field } from '../components/ui/Field';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { Trail } from '../data/trails';
 import { useMotion } from '../hooks/useMotion';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { haptics } from '../lib/haptics';
-import { createTrailRecommendation } from '../lib/trailRecommendations';
 import { useAppState } from '../state/AppState';
 import { colors, shadow } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
@@ -33,74 +20,67 @@ import { typography } from '../theme/typography';
 
 const UNDO_WINDOW_MS = 4000;
 
-export function SavedScreen() {
-  const { savedTrailIds, savedTrailMeta, savedTrailsLoading, setTrailSaved, trails, user } =
-    useAppState();
-  const tabBarInset = useTabBarInset();
-  const [pending, setPending] = useState<{ trailId: string; name: string } | null>(null);
-  const [recommendModalVisible, setRecommendModalVisible] = useState(false);
-  const [recommendation, setRecommendation] = useState({
-    name: '',
-    region: '',
-    description: '',
-    photoUrl: '',
-  });
-  const [recommendationState, setRecommendationState] = useState<
-    'idle' | 'sending' | 'sent' | 'error'
-  >('idle');
-  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+type PendingRemoval = { trailId: string; name: string };
 
-  useEffect(
-    () => () => {
-      if (pendingTimer.current) clearTimeout(pendingTimer.current);
-    },
-    [],
-  );
+export function SavedScreen() {
+  const {
+    savedTrailIds,
+    savedTrailMeta,
+    savedTrailsLoading,
+    setTrailSaved,
+    trails,
+    syncFailed,
+    retrySync,
+  } = useAppState();
+  const tabBarInset = useTabBarInset();
+  const [pending, setPending] = useState<PendingRemoval | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const pendingRef = useRef<PendingRemoval | null>(null);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setSaved = useRef(setTrailSaved);
+
+  useEffect(() => {
+    setSaved.current = setTrailSaved;
+  }, [setTrailSaved]);
+
+  // Carries out the removal that's waiting on its undo window. Used when the window
+  // runs out, and also when a second removal arrives, because there's only one undo
+  // bar and replacing it must not quietly bring the first trail back.
+  const commitPending = () => {
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    const removal = pendingRef.current;
+    if (!removal) return;
+    pendingRef.current = null;
+    setSaved.current(removal.trailId, false).catch(() => {
+      setRemoveError(`Couldn't remove ${removal.name}. Check your connection and try again.`);
+    });
+  };
+  const commitPendingRef = useRef(commitPending);
+  useEffect(() => {
+    commitPendingRef.current = commitPending;
+  });
+
+  useEffect(() => () => commitPendingRef.current(), []);
 
   const saved = trails.filter((t) => savedTrailIds.includes(t.id) && t.id !== pending?.trailId);
 
   const requestRemove = (trail: Trail) => {
     haptics.warning();
-    if (pendingTimer.current) clearTimeout(pendingTimer.current);
-    setPending({ trailId: trail.id, name: trail.name });
+    commitPending();
+    setRemoveError(null);
+    const removal = { trailId: trail.id, name: trail.name };
+    pendingRef.current = removal;
+    setPending(removal);
     pendingTimer.current = setTimeout(() => {
-      setTrailSaved(trail.id, false).catch((err) => console.warn('remove failed', err));
+      commitPending();
       setPending(null);
     }, UNDO_WINDOW_MS);
   };
 
   const undoRemove = () => {
     if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    pendingRef.current = null;
     setPending(null);
-  };
-
-  const submitRecommendation = async () => {
-    if (
-      !user ||
-      !recommendation.name.trim() ||
-      !recommendation.region.trim() ||
-      !recommendation.description.trim()
-    ) {
-      setRecommendationState('error');
-      return;
-    }
-    setRecommendationState('sending');
-    try {
-      await createTrailRecommendation(
-        user.uid,
-        user.displayName || user.email?.split('@')[0] || 'Hiker',
-        {
-          name: recommendation.name.trim(),
-          region: recommendation.region.trim(),
-          description: recommendation.description.trim(),
-          photoUrl: recommendation.photoUrl.trim(),
-        },
-      );
-      setRecommendationState('sent');
-      setRecommendation({ name: '', region: '', description: '', photoUrl: '' });
-    } catch {
-      setRecommendationState('error');
-    }
   };
 
   if (savedTrailsLoading) {
@@ -131,26 +111,25 @@ export function SavedScreen() {
             <Text style={styles.sub}>
               {saved.length} {saved.length === 1 ? 'trail' : 'trails'} kept for later
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Recommend a trail"
-              onPress={() => {
-                setRecommendModalVisible(true);
-                setRecommendationState('idle');
-              }}
-              hitSlop={8}
-            >
-              <Text style={styles.recommendLink}>Recommend a trail</Text>
-            </Pressable>
+            {removeError ? <Text style={styles.error}>{removeError}</Text> : null}
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.gap} />}
         ListEmptyComponent={
-          <EmptyState
-            title="Nothing saved yet"
-            body="Swipe up on a trail in Discover and it'll land here."
-            icon="bookmark-outline"
-          />
+          syncFailed ? (
+            <EmptyState
+              title="Couldn't load your trails"
+              body="Check your connection and try again."
+              icon="cloud-offline-outline"
+              action={{ label: 'Try again', onPress: retrySync }}
+            />
+          ) : (
+            <EmptyState
+              title="Nothing saved yet"
+              body="Swipe up on a trail in Discover and it'll land here."
+              icon="bookmark-outline"
+            />
+          )
         }
         renderItem={({ item }) => (
           <SavedTrailRow
@@ -160,86 +139,6 @@ export function SavedScreen() {
           />
         )}
       />
-
-      <Modal
-        visible={recommendModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setRecommendModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalBackdrop}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={typography.heading}>Recommend a trail</Text>
-                <Text style={styles.sub}>Send it to the trail team for review.</Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close recommendation"
-                onPress={() => setRecommendModalVisible(false)}
-                hitSlop={10}
-              >
-                <Ionicons name="close" size={24} color={colors.muted} />
-              </Pressable>
-            </View>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <View style={styles.recommendationForm}>
-                <Field
-                  label="Trail name"
-                  placeholder="Signal Hill"
-                  value={recommendation.name}
-                  onChangeText={(name) => setRecommendation((current) => ({ ...current, name }))}
-                />
-                <Field
-                  label="Region"
-                  placeholder="Cape Town, South Africa"
-                  value={recommendation.region}
-                  onChangeText={(region) =>
-                    setRecommendation((current) => ({ ...current, region }))
-                  }
-                />
-                <Field
-                  label="Why recommend it?"
-                  placeholder="A short sunset loop with city views"
-                  multiline
-                  value={recommendation.description}
-                  onChangeText={(description) =>
-                    setRecommendation((current) => ({ ...current, description }))
-                  }
-                  style={styles.recommendationDescription}
-                />
-                <Field
-                  label="Photo URL (optional)"
-                  autoCapitalize="none"
-                  keyboardType="url"
-                  value={recommendation.photoUrl}
-                  onChangeText={(photoUrl) =>
-                    setRecommendation((current) => ({ ...current, photoUrl }))
-                  }
-                />
-                {recommendationState === 'error' ? (
-                  <Text style={styles.noteError}>
-                    Add a name, region, and reason, then try again.
-                  </Text>
-                ) : null}
-                {recommendationState === 'sent' ? (
-                  <Text style={styles.sent}>Recommendation sent for review.</Text>
-                ) : null}
-                <Button
-                  label="Send recommendation"
-                  icon="send-outline"
-                  onPress={submitRecommendation}
-                  loading={recommendationState === 'sending'}
-                />
-              </View>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
 
       {pending ? (
         <View style={[styles.snackbar, { bottom: spacing.lg + tabBarInset }]}>
@@ -279,6 +178,7 @@ function SavedTrailRow({
       layout={reduced ? undefined : LinearTransition}
     >
       <Swipeable
+        overshootRight={false}
         renderRightActions={() => (
           <Pressable
             accessibilityRole="button"
@@ -297,21 +197,32 @@ function SavedTrailRow({
           style={({ pressed }) => pressed && styles.pressed}
         >
           <TrailCard trail={trail} height={180} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              noteOpen ? `Close note for ${trail.name}` : `Add a note for ${trail.name}`
-            }
-            hitSlop={10}
-            style={styles.noteToggle}
-            onPress={() => setNoteOpen((v) => !v)}
-          >
-            <Ionicons
-              name={note ? 'document-text' : 'create-outline'}
-              size={16}
-              color={colors.text}
-            />
-          </Pressable>
+          <View style={styles.rowActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${trail.name} from saved`}
+              hitSlop={6}
+              style={styles.rowAction}
+              onPress={onRemove}
+            >
+              <Ionicons name="trash-outline" size={16} color={colors.text} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                noteOpen ? `Close note for ${trail.name}` : `Add a note for ${trail.name}`
+              }
+              hitSlop={6}
+              style={styles.rowAction}
+              onPress={() => setNoteOpen((v) => !v)}
+            >
+              <Ionicons
+                name={note ? 'document-text' : 'create-outline'}
+                size={16}
+                color={colors.text}
+              />
+            </Pressable>
+          </View>
         </Pressable>
 
         {noteOpen ? (
@@ -327,16 +238,20 @@ const styles = StyleSheet.create({
   container: { paddingTop: spacing.sm, paddingBottom: spacing.xl },
   header: { gap: 2, marginBottom: spacing.md },
   sub: { ...typography.caption, color: colors.muted },
-  recommendLink: { ...typography.label, color: colors.primary, marginTop: spacing.xs },
+  error: { ...typography.caption, color: colors.danger, marginTop: spacing.xs },
   gap: { height: spacing.md },
   loadingCard: { height: 180, borderRadius: radius.xl },
   pressed: { opacity: 0.9 },
-  noteToggle: {
+  rowActions: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    width: 34,
-    height: 34,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  rowAction: {
+    width: 38,
+    height: 38,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     alignItems: 'center',
@@ -351,24 +266,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noteError: { color: colors.danger },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,26,21,0.42)' },
-  modalSheet: {
-    maxHeight: '88%',
-    padding: spacing.lg,
-    gap: spacing.md,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    backgroundColor: colors.background,
-  },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  recommendationForm: { gap: spacing.md, paddingBottom: spacing.lg },
-  recommendationDescription: { minHeight: 72, textAlignVertical: 'top' },
-  sent: { ...typography.caption, color: colors.primaryDark },
   snackbar: {
     position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
+    left: 0,
+    right: 0,
     bottom: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',

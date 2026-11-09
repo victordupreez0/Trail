@@ -1,148 +1,85 @@
 <div align="center">
 
-# Trail.
+<img src="frontend/assets/icon.png" alt="Trail app icon" width="120">
 
-### Leave the worry at the trailhead.
+# Trail · Mobile app
 
-A calm companion for hiking with people you care about. Find a trail, share your live
-location with your party, and let everyone stop wondering whether you are okay.
-
-<br>
-
-![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020?style=for-the-badge&logo=expo&logoColor=white)
-![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-
-![Reanimated](https://img.shields.io/badge/Reanimated-4.1-001A72?style=for-the-badge&logo=react&logoColor=white)
-![Google Maps](https://img.shields.io/badge/Maps-1.20-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
-![Jest](https://img.shields.io/badge/Jest-tested-C21325?style=for-the-badge&logo=jest&logoColor=white)
-![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+**Victor du Preez · 241250**
 
 </div>
 
----
+**Contents**
 
-## Contents
-
-- [The problem](#the-problem)
-- [Where the idea came from](#where-the-idea-came-from)
-- [What it does](#what-it-does)
-- [Demo video](#demo-video)
-- [Built with](#built-with)
-- [Run the demo](#run-the-demo)
-- [How it is put together](#how-it-is-put-together)
-- [Testing](#testing)
-- [Deliberate simplifications](#deliberate-simplifications)
-- [What is next](#what-is-next)
+- [About](#about)
+- [Getting started](#getting-started)
+- [Features](#features)
+- [Development process](#development-process)
+- [Final outcome](#final-outcome)
 - [Conclusion](#conclusion)
-- [Acknowledgements](#acknowledgements)
-- [Licence and author](#licence-and-author)
 
-## The problem
+## About
 
-Time on a trail is one of the best ways to lower stress. A hum of small worries chips
-away at exactly the reset you came for.
+Trail is a mobile app for hiking with less stress. Time on a trail should lower stress, but small
+worries get in the way. Am I still on the path? Is everyone okay? Have I had enough water?
 
-> Am I still on the path? Is everyone in my group okay? Have I had enough water?
-> Is my family worrying about me?
+Trail takes on those worries. You find a trail, start a hike and share a six character code.
+Everyone who joins appears on one live party map, so nobody has to wonder where anyone is. If
+someone goes quiet or runs low on battery, the app says so plainly. If nothing is wrong, it stays
+out of the way.
 
-Trail's job is to quietly absorb that load, so the hike can do what hiking is for.
+Three cards drawn at random shaped the idea: reduce stress, use geolocation, and avoid traditional
+UI buttons.
 
-## Where the idea came from
+![Trail cover showing the Discover, Today and Party screens on three phones](trail_mockups/trail-01-cover.jpg)
 
-Three cards, drawn at random in week one. Rather than fight them, Trail makes all three
-pull in the same direction.
+**Built with**
 
-| Card                          | How Trail answers it                                                                                                                                                                      |
-| :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reduce Stress**             | The lens for every decision. The app never shouts, never nags, and does less rather than more.                                                                                            |
-| **Geolocation**               | The engine. Live party positions on a shared map, updated every ten seconds with a heartbeat so nobody's dot goes quietly stale.                                                          |
-| **No Traditional UI Buttons** | Gesture first. Swipe to save a trail, swipe to remove one, flick between screens. A real button appears only where a tap has to be unambiguous: start a hike, save a trail, end tracking. |
+![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![expo-location](https://img.shields.io/badge/expo--location-19-000020?style=for-the-badge&logo=expo&logoColor=white)
+![react-native-maps](https://img.shields.io/badge/react--native--maps-1.20-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
 
-On that last one: there is a tab bar, and that is a deliberate call. Gestures are the
-shortcut, the tab bar is the map. An app people open one-handed on a mountain does not
-get to hide its navigation, and Usability matters as much to me as the constraint does.
+## Getting started
 
-## What it does
+### Prerequisites
 
-**Find a trail.** Swipe up to save, down to skip. Every trail has a photo, a distance,
-an elevation gain, a difficulty and a drawn route on a map.
+| Tool                               | Needed for                             |
+| :--------------------------------- | :------------------------------------- |
+| Node.js 22 or newer, with npm      | Everything                             |
+| Expo Go on an Android or iOS phone | Running the app                        |
+| Java 21                            | `npm run test:rules` only              |
+| A Firebase project                 | Only if you run your own backend       |
+| A Firebase service account key     | Only for `npm run seed` and `simulate` |
 
-**Keep your notes.** Save a trail and write yourself a note on it. Bring the 3L bladder,
-water at the halfway hut. Swipe left to remove one, with four seconds to undo.
+### Run the demo
 
-**Hike together.** Start a hike, share a six character code, and everyone who joins
-appears on the same map. Markers update with each live fix, and each
-person leaves a fading breadcrumb trail behind them. If somebody has not checked in for
-a while their avatar dims and their row reads "last seen 4m ago" rather than pretending
-the pin is current.
+The demo needs no Firebase setup. It connects to a hosted database that is already seeded with
+trails and has its rules published.
 
-**Stay looked after.** The Today screen shows your party, your water, and an alerts strip
-that stays empty when nothing is wrong. When something is, it says so plainly: Sam has
-not checked in for two minutes. Nadia's battery is at 12%.
+> `frontend/.env` is committed on purpose for assessment, so the real app runs from a clean clone.
+> It holds Firebase's public client configuration only. It has no service account key or private
+> secret, and the rules in `backend/` control access. In any real project this file stays untracked.
 
-**Drink water.** Calm reminders while a hike is running, on your own schedule. "Time for
-water", not "REMINDER: HYDRATE!".
+1. Clone the repo and install the frontend:
 
-**Make it yours.** Email sign up with a password reset, a three slide onboarding that
-shows once per account, and a profile photo you can change.
+   ```bash
+   git clone https://github.com/victordupreez0/Trail.git
+   cd Trail/frontend
+   npm install
+   ```
 
-## Demo video
+2. Start the app:
 
-<!-- TODO: add the demo recording here, as a link or an embedded video. -->
+   ```bash
+   npm start
+   ```
 
-_Coming soon._
+3. Scan the QR code with Expo Go, on the same WiFi as your computer. If the WiFi blocks phone to
+   laptop traffic, which most campus networks do, use `npm run start:tunnel` instead.
 
-## Built with
-
-|                                                                       | What                                        | Why                                                                                                              |
-| :-------------------------------------------------------------------- | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.simpleicons.org/expo/000000/FFFFFF" width="18"> | **Expo SDK 54 + React Native 0.81**         | Cross platform from one codebase, and Expo Go means anyone can run this from a QR code with no native build.     |
-| <img src="https://cdn.simpleicons.org/typescript/3178C6" width="18">  | **TypeScript, strict**                      | Compile time safety against the shapes coming back from Firestore.                                               |
-| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Firebase Auth**                           | Email and password, with sessions persisted so you do not sign in twice.                                         |
-| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Cloud Firestore**                         | Real time listeners are what make a shared party map work at all.                                                |
-| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="18">    | **Firebase Storage**                        | Profile photos, with size and content type enforced in the rules.                                                |
-| <img src="https://cdn.simpleicons.org/googlemaps/4285F4" width="18">  | **react-native-maps**                       | Trail routes, live party positions, breadcrumb trails.                                                           |
-| <img src="https://cdn.simpleicons.org/react/61DAFB" width="18">       | **Reanimated 4 + Gesture Handler**          | One library earns two requirements: it powers the gesture first constraint and the brief's interactive tweening. |
-| <img src="https://cdn.simpleicons.org/expo/000000/FFFFFF" width="18"> | **expo-location / notifications / battery** | Foreground tracking, local reminders, battery in the party list.                                                 |
-| <img src="https://cdn.simpleicons.org/jest/C21325" width="18">        | **Jest + Firebase Rules Unit Testing**      | Unit tests for the pure logic, and the security rules tested against the emulator in CI.                         |
-
-## Run the demo
-
-> **Ready to run.** The committed `frontend/.env` is intentional for assessment: it contains
-> Firebase’s public mobile/web client configuration, so a lecturer can clone and test
-> the real app without having to create a Firebase project first. It contains no
-> service-account credential, private key, or production secret.
-
-You need **Node 22+** and **Expo Go** on your phone.
-
-```bash
-git clone https://github.com/victordupreez0/Trail.git
-cd Trail
-cd frontend
-npm install
-npm start
-```
-
-Scan the QR code with Expo Go, on the same WiFi as your computer. That is the whole
-setup. The checked-in `frontend/.env` contains the demo Firebase configuration:
-
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDO8uv6YKp7nmV_CHTTlRddZi-1sTtX4No
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=trail-e33af.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=trail-e33af
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=trail-e33af.firebasestorage.app
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1010115514705
-EXPO_PUBLIC_FIREBASE_APP_ID=1:1010115514705:web:cbda63f6cbda61419b8370
-```
-
-The app talks to a database that is already seeded with trails and has its rules
-published.
-
-### Demo admin account
-
-Use this shared account to open **Profile → Admin → Manage trails** during the demo:
+**Demo admin account.** Use this shared account to open **You → Admin → Manage trails**:
 
 ```text
 Email:    admin@gmail.com
@@ -151,63 +88,55 @@ Password: admin123
 
 This is a hand-in-only account. Do not reuse its password anywhere else.
 
-On WiFi that blocks phone to laptop traffic, which is most campus networks, use
-`npm run start:tunnel` instead.
+### Set up your own Firebase backend
 
-> **Why committing `.env` is normally bad practice:** It is. This exception exists
-> solely to make the assessment demo reproducible. Firebase web API keys are public
-> client identifiers; access is enforced by the Firestore and Storage rules in
-> `backend/`. No service-account key, Admin SDK credential, or private secret is in
-> this repository. For any real project, `frontend/.env` stays untracked.
+Skip this section to use the demo backend.
 
-<details>
-<summary><b>Running it against your own Firebase instead</b></summary>
+1. In the [Firebase console](https://console.firebase.google.com), create a project and add a
+   **Web app**.
+2. Under **Authentication**, enable **Email/Password**.
+3. Create a **Cloud Firestore** database and a **Storage** bucket. Firebase may ask you to move to
+   the Blaze plan for Storage.
+4. Replace the six values in `frontend/.env` with the Web app values from your project settings.
+5. Publish the rules and indexes. Firestore denies every read and write by default, so the app
+   looks broken until this is done.
 
-<br>
+   ```bash
+   cd frontend
+   npx firebase login
+   npx firebase --config ../firebase.json deploy --project YOUR_PROJECT_ID --only firestore:rules,firestore:indexes,storage
+   ```
 
-In the [Firebase console](https://console.firebase.google.com): create a project, add a
-**Web app**, enable **Email/Password** under Authentication, create a **Cloud Firestore**
-database, and create a **Storage** bucket.
+6. Create a service account key under **Project settings → Service accounts** and keep it outside
+   this repo. Set `GOOGLE_APPLICATION_CREDENTIALS` to its path, then seed the trails from
+   `frontend/`:
 
-Replace the six demo values in `frontend/.env` with the matching Web app values from
-your Firebase project settings.
+   ```bash
+   npm run seed
+   ```
 
-Publish the rules. This step is not optional: Firestore denies every read and write by
-default, so without it nothing saves and the app looks broken.
+7. The rules treat `admin@gmail.com` as the admin. Sign up with that email on your project to use
+   the admin screen.
 
-```bash
-cd frontend
-npx firebase login
-npx firebase --config ../firebase.json deploy --only firestore:rules,firestore:indexes,storage
-npm run seed   # needs GOOGLE_APPLICATION_CREDENTIALS pointing at a service account key
-```
+### Try the live map with one phone
 
-</details>
-
-### Trying the live map on your own
-
-A shared party map needs more than one person on it. `backend/simulate-hiker.ts` is a
-test harness that walks simulated hikers along a trail route, writing positions to
-Firestore every five seconds, so the live map can be demonstrated with a single phone.
-
-Start a hike in the app, then run this from `frontend/` with the invite code shown on
-the Party tab:
+`backend/simulate-hiker.ts` walks simulated hikers along a trail and writes their positions to
+Firestore every five seconds. Start a hike in the app, then run this from `frontend/` with the
+invite code shown on the Party tab:
 
 ```bash
 npm run simulate -- --code=ABC123
 ```
 
-The script writes with the Admin SDK, so it needs Google credentials for the project:
-either `GOOGLE_APPLICATION_CREDENTIALS` pointing at a service account key, or
+The script uses the Admin SDK, so it needs either `GOOGLE_APPLICATION_CREDENTIALS` or
 `gcloud auth application-default login`.
 
-The hikers follow your hike's trail. If you are not near that trail, they walk the same
-route starting from where you are, so everyone fits on one map. After 30 seconds one of
-them goes quiet for three minutes, so the stale alert fires at about the two minute mark
-and clears when they come back. Ctrl-C cleans up after itself.
+The hikers follow your hike's trail. If you are not near it, they walk the same route starting from
+where you are. After 30 seconds one of them goes quiet for three minutes, so the stale alert fires
+at about the two minute mark and clears when they return. Ctrl-C cleans up after itself.
 
-Optional flags: `--members=2`, `--trail=<id>`, `--speed=3`, `--quiet-after=30` and
-`--quiet-for=180`, both in seconds.
+Optional flags: `--members=2`, `--trail=<id>`, `--speed=3`, `--quiet-after=30` and `--quiet-for=180`
+(both in seconds).
 
 ### Other commands
 
@@ -219,17 +148,63 @@ npm test              # unit tests
 npm run test:rules    # security rules against the Firestore emulator (needs Java 21)
 ```
 
-## How it is put together
+## Features
+
+### Live party map
+
+Start a hike and share a six character code. Everyone who joins appears on one map, and each person
+leaves a fading breadcrumb trail. If someone stops checking in, their avatar dims and their row
+reads "last seen 4m ago" instead of pretending the pin is current.
+
+![Party screen with four hikers on a live map and their status list](trail_mockups/trail-02-party.jpg)
+
+### Today
+
+Today shows your party, your water and an alerts strip. The strip stays empty when nothing is
+wrong. When something is, it says so plainly: someone has not checked in for two minutes, or their
+battery is low. Tap the bottle to log water. Calm reminders run during a hike, on your own schedule.
+
+![Today screen with a hike in progress, party alerts and the water bottle](trail_mockups/trail-03-today.jpg)
+
+### Discover and save
+
+Swipe up to save a trail, swipe down to skip it, or tap to read the route, distance and climb. Save
+and skip buttons sit under the deck for anyone who prefers to tap. Saved trails keep your own notes.
+Removing one gives you four seconds to undo.
+
+![Discover screen with a swipeable trail card and arrows for save and skip](trail_mockups/trail-04-discover.jpg)
+
+### Hike summary
+
+Ending a hike opens a summary. The route draws itself in, then the time out, trail length, party
+size and water for the day count up.
+
+![Trail detail screen beside the hike summary screen](trail_mockups/trail-05-summary.jpg)
+
+### The rest of the app
+
+Trail also has email sign up with password reset, a three slide onboarding that shows once per
+account, a profile photo, a safety screen, and an admin screen for the trail catalogue. Starting a
+hike away from the trailhead shows a warning first.
+
+![A collage of Trail's main screens on tilted phones](trail_mockups/trail-06-all-screens.jpg)
+
+## Development process
+
+### Architecture
 
 ```
 frontend/     self-contained Expo app
   app/          screens, one file per route (expo-router)
   src/          components, screens, hooks, Firebase, state and theme
   assets/       icons, splash art and bundled trail photos
-  video/        place the demo recording here
 backend/      security rules, rules tests, seed and simulation scripts
-docs/         the brief, my annotated pitch, design spec
+docs/         my annotated pitch, design spec and demo checklist
 ```
+
+Five main screens sit in one swipeable pager: Today, Discover, Saved, Party and You. Firestore
+listeners and React Context hold the app state. During a hike, each phone writes its own position
+to Firestore and listens to the positions of everyone else in the group.
 
 ### Data model
 
@@ -248,10 +223,10 @@ groups/{groupId}                   name, trailId, ownerId, memberIds[], active,
 inviteCodes/{CODE}                 groupId, active
 ```
 
-That last collection is there for a specific reason. A group can only be read by its
-own members, so somebody joining by code cannot query groups by `inviteCode`, because
-they are not a member yet. `inviteCodes` is a small public mirror that gets them from a
-code to a group id without opening the group itself up to the world.
+That last collection is there for a specific reason. A group can only be read by its own members,
+so somebody joining by code cannot query groups by `inviteCode`, because they are not a member yet.
+`inviteCodes` is a small public mirror that gets them from a code to a group id without opening the
+group itself up to the world.
 
 ```mermaid
 erDiagram
@@ -321,100 +296,153 @@ erDiagram
     }
 ```
 
-### Security
+### Design summary
 
-Location data deserves rules you can actually trust, so they are tested rather than
-assumed. `backend/rules.test.ts` runs eighteen cases against the Firestore emulator in
-CI, covering things like: a non-member cannot read a group, a member cannot write
-somebody else's position, and only a hike's owner can retire its invite code.
+**Moodboard.** A calm outdoor look: warm paper backgrounds, forest greens and a muted terracotta
+accent. Only danger alerts are allowed to stand out.
 
-## Testing
+**Wireframes.** The [project pitch](docs/annotated-241250_Victor_du_Preez_DV300_S2_A1_Project%2520Pitch.pdf)
+wireframes four key screens: Home and Map, Trail Detail, Discover, and the live group view. It also
+sets the accessibility goals: one-handed use, contrast for sunlight, large tap targets, haptics and
+reduced motion.
 
-**135 unit tests** in 16 suites and **18 security rules tests** against the Firestore
-emulator, run in CI on every pull request and every push to `main`.
+### Key decisions
 
-| Scope                                    | Statements | Branches | Functions | Lines  |
-| :--------------------------------------- | :--------- | :------- | :-------- | :----- |
-| `src/lib`, every file                    | 80.55%     | 76.63%   | 70%       | 80.79% |
-| Whole app, every file in `app` and `src` | 39.8%      | 30.57%   | 36.55%    | 40.09% |
+**Gesture first.** The brief's constraint was no traditional UI buttons, so the main actions are
+gestures. You swipe to save, skip and move between screens. Buttons stay where a tap has to be
+unambiguous, such as starting or ending a hike.
 
-The second row is low because most screens are drawn by native maps, gestures and
-animation, which unit tests cannot exercise. Those are checked by hand on a phone. The
-screen level tests cover what can break quietly: the swipe deck, notes, app state and
-the Party screen.
+**Tab bar kept for usability.** The pitch planned a pager with no tab bar. I kept the pager and
+added a tab bar over it. Gestures are the shortcut and the tab bar is the map. An app used one-handed
+on a mountain cannot hide its navigation.
 
-To reproduce the numbers from `frontend/`:
+**10-second updates and a heartbeat.** While a hiker moves, their phone writes a position at most
+every 10 seconds. A phone standing still fires no location events, so a heartbeat re-sends the last
+fix every 30 seconds. Party screens re-check every 10 seconds, and two minutes of silence dims that
+person and raises an alert. Firestore listeners met this target alone, so I dropped the Realtime
+Database channel from the pitch.
 
-```bash
-npm test -- --coverage
-```
+### Challenges
 
-```bash
-npm test -- --coverage "--collectCoverageFrom=src/**/*.{ts,tsx}" "--collectCoverageFrom=app/**/*.tsx"
-```
+- **Joining a private group.** A joiner is not yet a member, so the rules block them from finding
+  the group by its code. The `inviteCodes` collection solves this without making groups public.
+- **Background tracking.** The original plan used background location, but that needs a custom
+  native build. I chose foreground tracking so that anyone can run the app from a QR code in Expo Go.
+- **A quiet phone looks like a lost phone.** Someone resting sends no location events, so the
+  heartbeat keeps them from being marked as stale.
+- **Gestures that compete.** A sideways drag on the live map has to pan the map and not change the
+  tab, so page swiping turns off on the Party screen during a hike.
+- **A swipe deck that skipped cards.** Each save used to skip the next trail. The deck now reads
+  the first undecided trail by id.
+- **A CI step that always failed.** The rules test config could not find its tests, so
+  that CI step always failed until I fixed the config.
 
-## Deliberate simplifications
+### Security rules
 
-I would rather name these than have them look like bugs.
+Location data needs rules that are tested and not assumed. `backend/rules.test.ts` runs 18 cases
+against the Firestore emulator in CI. For example, a non-member cannot read a group, a member cannot
+write another member's position, and only a hike's owner can retire its invite code.
 
-- **Tracking is foreground only.** Background location needs a custom native build, and
-  staying on Expo Go so anyone can run this from a QR code was worth more to me.
-- **Only the hike owner can end a hike.** The rules let a person add their own uid to a
-  group and never remove one, so there is no leave path to offer without loosening them.
-- **Trail routes are simplified polylines**, not recorded GPX tracks.
+| Path                               | Read               | Write                                                        |
+| :--------------------------------- | :----------------- | :----------------------------------------------------------- |
+| `users/{uid}` and `savedTrails`    | That user          | That user                                                    |
+| `trails/{trailId}`                 | Any signed-in user | Admin only                                                   |
+| `groups/{groupId}`                 | Group members      | Owner, or a user adding only their own id to `memberIds`     |
+| `groups/{groupId}/positions/{uid}` | Group members      | That member only                                             |
+| `inviteCodes/{CODE}`               | Any signed-in user | Any signed-in user can create. Only the owner can deactivate |
+| Storage `avatars/{uid}`            | Any signed-in user | That user. Images only, up to 5 MB                           |
 
-## What is next
+The admin check compares one demo email address. A production app would use custom claims. Only a
+hike's owner can end it, and members cannot leave a group, because the rules let a person add their
+own id but never remove it.
 
-Plant and bird identification from a photo, offline trail maps, and a full survival tips
-library.
+## Final outcome
+
+| Test suite      | Command                  | Result                    |
+| :-------------- | :----------------------- | :------------------------ |
+| Unit and screen | `npm test -- --coverage` | **135 passed**, 16 suites |
+| Security rules  | `npm run test:rules`     | **18 passed**, 1 suite    |
+
+The security rules result comes from
+[GitHub Actions](https://github.com/victordupreez0/Trail/actions/runs/42486165003), on commit
+`805ebbc`.
+
+| Coverage             | Statements | Branches | Functions | Lines  |
+| :------------------- | :--------- | :------- | :-------- | :----- |
+| `src/lib`, all files | 80.55%     | 76.63%   | 70%       | 80.79% |
+
+Coverage counts every file in `src/lib`, which holds the app's logic. Screens and components are not
+in these numbers. Native maps, gestures and animation are checked by hand on a phone.
+
+<details>
+<summary><b>Coverage by file</b></summary>
+
+| File             | Statements | Branches | Functions | Lines  |
+| :--------------- | :--------- | :------- | :-------- | :----- |
+| `adminTrails.ts` | 0%         | 100%     | 0%        | 0%     |
+| `auth.ts`        | 0%         | 0%       | 0%        | 0%     |
+| `authMessage.ts` | 100%       | 100%     | 100%      | 100%   |
+| `catalog.ts`     | 100%       | 100%     | 100%      | 100%   |
+| `firebase.ts`    | 0%         | 0%       | 0%        | 0%     |
+| `groups.ts`      | 89.28%     | 62.5%    | 72.72%    | 88.88% |
+| `haptics.ts`     | 50%        | 100%     | 20%       | 50%    |
+| `hikeSummary.ts` | 93.1%      | 76.92%   | 100%      | 100%   |
+| `hydration.ts`   | 100%       | 100%     | 100%      | 100%   |
+| `inviteCode.ts`  | 100%       | 100%     | 100%      | 100%   |
+| `party.ts`       | 100%       | 95.83%   | 100%      | 100%   |
+| `positions.ts`   | 100%       | 100%     | 100%      | 100%   |
+| `profile.ts`     | 0%         | 0%       | 0%        | 0%     |
+| `reminders.ts`   | 100%       | 100%     | 90%       | 100%   |
+| `savedTrails.ts` | 100%       | 100%     | 100%      | 100%   |
+| `simulation.ts`  | 100%       | 92.85%   | 100%      | 100%   |
+| `swipe.ts`       | 100%       | 100%     | 100%      | 100%   |
+| `trailhead.ts`   | 100%       | 100%     | 100%      | 100%   |
+| `userDoc.ts`     | 80%        | 66.66%   | 57.14%    | 78.57% |
+| `wave.ts`        | 100%       | 66.66%   | 100%      | 100%   |
+
+</details>
 
 ## Conclusion
 
-### What went well
+**Highlights**
 
-TODO
+- Three random cards became one clear idea: a safety app reframed as a calm one.
+- A shared live map keeps a whole party in view, and shows plainly when someone goes quiet.
+- The location rules are tested against the emulator, not just written.
+- Anyone can run the app from a QR code, with no native build and no Firebase setup.
 
-### What I would do differently
+**Challenges**
 
-TODO
+- Location sharing had to be private by default and still let a new person join by code.
+- Maps, gestures and notifications cannot be proven by unit tests, so they need testing on a phone.
+- Tracking only runs in the foreground, and trail routes are simplified lines and not recorded GPX
+  tracks.
 
-### What I learned
+**Future improvements**
 
-TODO
-
-## Acknowledgements
-
-- **Trail photography** from [Unsplash](https://unsplash.com), used under the Unsplash
-  licence. Images are bundled locally so they render with no network on the mountain.
-- **Icons** from [Ionicons](https://ionic.io/ionicons) via `@expo/vector-icons`.
-- **[Expo](https://docs.expo.dev)** and **[React Native](https://reactnative.dev)**
-  documentation, which is where the app icon, splash screen and notification work came
-  from.
-- **[Firebase documentation](https://firebase.google.com/docs)**, particularly the
-  security rules guide and the rules unit testing library.
-- **[Reanimated](https://docs.swmansion.com/react-native-reanimated/)** and
-  **[Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/)** docs
-  by Software Mansion, for the gesture and animation work.
-- **Trail data** for the Cape Town routes cross referenced against
-  [SANParks](https://www.sanparks.org) and public trail guides.
-- **AI tools:** [Claude Code](https://claude.com/claude-code) by Anthropic, used for the
-  final bug audit, fixes, tests and documentation.
-  <!-- TODO: list any other AI tools you used, and for what. -->
-- **DV300 lecturer:** Tsungai Katsuro.
-
-## Licence and author
-
-Released under the [MIT Licence](LICENSE).
-
-Built by **Victor du Preez**: [victor.dupreez0@gmail.com](mailto:victor.dupreez0@gmail.com)
-· [LinkedIn](https://www.linkedin.com/in/victor-du-preez-47475a321)
+- Plant and bird identification from a photo.
+- Offline trail maps.
+- Background tracking, using a custom native build.
 
 ---
 
-<div align="center">
+**License.** MIT License. Copyright (c) 2026 Victor du Preez. See [LICENSE](LICENSE).
 
-**Victor du Preez** · Student 241250<br>
-Interactive Development 300 · Semester 2 · Theme 3<br>
-Open Window · 2026
+**Author.** Victor du Preez · 241250 · Interactive Development 300 · Open Window · 2026 ·
+[victor.dupreez0@gmail.com](mailto:victor.dupreez0@gmail.com)
 
-</div>
+**Acknowledgements**
+
+- **AI tools:** Claude and [Claude Code](https://claude.com/claude-code) by Anthropic, used for the
+  final bug audit, fixes, tests, documentation and the mockup images in this README.
+- **Trail photography** from [Unsplash](https://unsplash.com), used under the Unsplash licence.
+- **Icons** from [Ionicons](https://ionic.io/ionicons) via `@expo/vector-icons`.
+- **[Expo](https://docs.expo.dev)** and **[React Native](https://reactnative.dev)** documentation.
+- **[Firebase documentation](https://firebase.google.com/docs)**, particularly the security rules
+  guide and the rules unit testing library.
+- **[Reanimated](https://docs.swmansion.com/react-native-reanimated/)** and
+  **[Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/)** documentation by
+  Software Mansion.
+- **Trail data** for the Cape Town routes, cross-referenced against SANParks and public trail
+  guides.
+- **DV300 lecturer:** Tsungai Katsuro.

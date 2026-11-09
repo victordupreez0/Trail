@@ -42,6 +42,18 @@
           "isAndroidBackgroundLocationEnabled": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "781884ef-91dc-42d2-ba93-94689558e50d"
+      }
+    },
+    "owner": "vic_dp",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/781884ef-91dc-42d2-ba93-94689558e50d"
+    }
   }
 }

@@ -88,8 +88,8 @@ export default function Login() {
               placeholder="you@example.com"
               autoCapitalize="none"
               autoComplete="email"
+              textContentType="username"
               keyboardType="email-address"
-              value={email}
               onChangeText={setEmail}
             />
             <Field
@@ -97,7 +97,8 @@ export default function Login() {
               icon="lock-closed-outline"
               placeholder="••••••••"
               secureTextEntry
-              value={password}
+              autoComplete="current-password"
+              textContentType="password"
               onChangeText={setPassword}
             />
             <Pressable

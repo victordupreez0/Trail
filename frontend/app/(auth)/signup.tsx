@@ -62,7 +62,6 @@ export default function Signup() {
               icon="person-outline"
               placeholder="Your name"
               autoComplete="name"
-              value={name}
               onChangeText={setName}
             />
             <Field
@@ -71,8 +70,8 @@ export default function Signup() {
               placeholder="you@example.com"
               autoCapitalize="none"
               autoComplete="email"
+              textContentType="username"
               keyboardType="email-address"
-              value={email}
               onChangeText={setEmail}
             />
             <Field
@@ -80,7 +79,8 @@ export default function Signup() {
               icon="lock-closed-outline"
               placeholder="At least 6 characters"
               secureTextEntry
-              value={password}
+              autoComplete="new-password"
+              textContentType="newPassword"
               onChangeText={setPassword}
             />
           </View>

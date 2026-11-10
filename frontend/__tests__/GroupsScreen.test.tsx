@@ -101,7 +101,9 @@ test('a failed load offers a retry rather than an endless skeleton', async () =>
 });
 
 test('the invite code can be shared', async () => {
-  const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+  const share = jest
+    .spyOn(Share, 'share')
+    .mockResolvedValue({ action: 'sharedAction', activityType: undefined });
   await render(<GroupsScreen />);
   expect(screen.getByText('ABC123')).toBeTruthy();
   await fireEvent.press(screen.getByLabelText('Share invite code A B C 1 2 3'));

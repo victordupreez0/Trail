@@ -1,9 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render as baseRender, screen } from '@testing-library/react-native';
+import type { ReactElement } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SwipeDeck } from '../src/components/SwipeDeck';
 import type { Trail } from '../src/data/trails';
 import { DiscoverScreen } from '../src/screens/DiscoverScreen';
 
+jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../src/lib/haptics', () => ({ haptics: { medium: jest.fn(), light: jest.fn() } }));
@@ -11,6 +14,10 @@ jest.mock('../src/hooks/useTabBarInset', () => ({ useTabBarInset: () => 0 }));
 jest.mock('../src/hooks/useMotion', () => ({
   useMotion: () => ({ reduced: false, spring: {} }),
 }));
+
+// Gesture Handler 3 only recognises gestures inside its root view, which app/_layout.tsx
+// provides in the app.
+const render = (ui: ReactElement) => baseRender(ui, { wrapper: GestureHandlerRootView });
 
 const trail = (id: string, name: string): Trail => ({
   id,

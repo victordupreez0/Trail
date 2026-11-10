@@ -241,7 +241,7 @@ function DeckCard({
 const styles = StyleSheet.create({
   wrapper: { flex: 1, justifyContent: 'center' },
   stack: { height: CARD_HEIGHT, justifyContent: 'center' },
-  cardSlot: { ...StyleSheet.absoluteFillObject },
+  cardSlot: { ...StyleSheet.absoluteFill },
   badge: {
     position: 'absolute',
     top: spacing.md,

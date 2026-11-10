@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  water: { ...StyleSheet.absoluteFillObject },
+  water: { ...StyleSheet.absoluteFill },
   wave: { position: 'absolute', top: 0, left: 0, width: BOTTLE_W * 2, height: BOTTLE_H },
   waveBack: { top: 3 },
   ripple: {

@@ -277,7 +277,7 @@ export function GroupsScreen() {
               initialRegion={region}
               onMapReady={() => setMapReady(true)}
               moveOnMarkerPress={false}
-              showsPointsOfInterest={false}
+              showsPointsOfInterests={false}
               showsCompass={false}
               toolbarEnabled={false}
             >

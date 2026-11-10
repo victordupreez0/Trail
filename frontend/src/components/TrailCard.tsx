@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     ...shadow.card,
   },
-  photo: StyleSheet.absoluteFillObject,
+  photo: StyleSheet.absoluteFill,
   content: { flex: 1, justifyContent: 'flex-end', padding: spacing.md, gap: spacing.xs },
   name: { ...typography.title, color: colors.surface },
   metaRow: { flexDirection: 'row', alignItems: 'center' },

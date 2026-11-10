@@ -41,7 +41,8 @@
           "locationWhenInUsePermission": "Trail shares your location with your hiking party while a hike is active.",
           "isAndroidBackgroundLocationEnabled": false
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {

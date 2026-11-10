@@ -7,7 +7,16 @@ import {
   assertSucceeds,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -58,6 +67,11 @@ beforeEach(async () => {
 test('a non-member can read an invite code', async () => {
   const carol = testEnv.authenticatedContext(OUTSIDER).firestore();
   await assertSucceeds(getDoc(doc(carol, 'inviteCodes', INVITE_CODE)));
+});
+
+test('a signed-in user in no group cannot list every invite code', async () => {
+  const carol = testEnv.authenticatedContext(OUTSIDER).firestore();
+  await assertFails(getDocs(collection(carol, 'inviteCodes')));
 });
 
 test('a non-member cannot read the group itself', async () => {

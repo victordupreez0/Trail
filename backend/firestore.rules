@@ -44,7 +44,8 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
       }
 
-      allow read: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if false; // listing would hand out every code and its groupId
       allow create: if isSignedIn();
       // Only the group's owner can flip a code inactive (endGroup), and only that
       // field may move; the groupId a code points at never changes.

@@ -1,21 +1,30 @@
-<div align="center">
+<img src="docs/media/trail-hero.png" alt="Trail: leave the worry at the trailhead. A live party map, quiet safety alerts and a swipe deck of South African trails, built with React Native, Expo and Firebase" width="100%" />
 
-<img src="frontend/assets/icon.png" alt="Trail app icon" width="120">
+<div align="center">
 
 # Trail · Mobile app
 
-**Victor du Preez · 241250**
+**A calm hiking app: find a trail, share one code, and see your whole group on one live map.**
+
+Victor du Preez · 241250 · Interactive Development 300 · Open Window · November 2026
+
+![React Native](https://img.shields.io/badge/React_Native_0.88-161b22?style=flat-square&logo=react&logoColor=61DAFB) ![Expo](https://img.shields.io/badge/Expo_SDK_58-161b22?style=flat-square&logo=expo&logoColor=ffffff) ![TypeScript](https://img.shields.io/badge/TypeScript-161b22?style=flat-square&logo=typescript&logoColor=3178C6) ![Firebase](https://img.shields.io/badge/Firebase-161b22?style=flat-square&logo=firebase&logoColor=FFCA28) ![Google Maps](https://img.shields.io/badge/Google_Maps-161b22?style=flat-square&logo=googlemaps&logoColor=4285F4) ![Jest](https://img.shields.io/badge/Jest-161b22?style=flat-square&logo=jest&logoColor=C21325)
 
 </div>
 
-**Contents**
+<details>
+<summary><b>Table of contents</b></summary>
 
-- [About](#about)
-- [Getting started](#getting-started)
-- [Features](#features)
-- [Development process](#development-process)
-- [Final outcome](#final-outcome)
-- [Conclusion](#conclusion)
+1. [About](#about)
+2. [Getting started](#getting-started)
+3. [Features](#features)
+4. [Development process](#development-process)
+5. [Final outcome](#final-outcome)
+6. [Conclusion](#conclusion)
+
+</details>
+
+---
 
 ## About
 
@@ -30,16 +39,25 @@ out of the way.
 Three cards drawn at random shaped the idea: reduce stress, use geolocation, and avoid traditional
 UI buttons.
 
-![Trail cover showing the Discover, Today and Party screens on three phones](trail_mockups/trail-01-cover.jpg)
+<p align="center"><img src="docs/media/trail-tour.gif" alt="A 20-second tour of Trail: Discover, the live party map, Today and the hike summary" width="100%" /></p>
 
-**Built with**
+### Built with
 
-![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![expo-location](https://img.shields.io/badge/expo--location-19-000020?style=for-the-badge&logo=expo&logoColor=white)
-![react-native-maps](https://img.shields.io/badge/react--native--maps-1.20-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+| Layer               | Technology                                                                | Used for                                                                   |
+| :------------------ | :------------------------------------------------------------------------ | :------------------------------------------------------------------------- |
+| App                 | React Native 0.88, Expo SDK 58                                            | One codebase for iOS and Android, run in Expo Go                           |
+| Language            | TypeScript 6, strict                                                      | Type safety across the app and the Firestore data                          |
+| Navigation          | Expo Router, react-native-pager-view                                      | Screen routes, and the five swipeable main tabs                            |
+| Maps and location   | react-native-maps, expo-location                                          | Trail routes, the live party map and location sharing                      |
+| Gestures and motion | react-native-gesture-handler, react-native-reanimated                     | The swipe deck, swipe-to-remove and animations                             |
+| Graphics            | react-native-svg, expo-linear-gradient, expo-blur                         | The water bottle, route drawings, gradients and the frosted tab bar        |
+| Device              | expo-notifications, expo-battery, expo-haptics, expo-image-picker         | Water and rest reminders, party battery levels, haptics and profile photos |
+| Local storage       | AsyncStorage                                                              | Keeping you signed in and remembering the onboarding                       |
+| Backend             | Firebase 12: Authentication, Cloud Firestore, Storage                     | Email sign-in, live data and profile photos                                |
+| Security            | Firestore and Storage rules, @firebase/rules-unit-testing, firebase-tools | Access control, tested against the Firestore emulator                      |
+| Updates             | expo-updates with EAS Update                                              | Publishing the demo so it opens in Expo Go without a laptop                |
+| Testing             | Jest 30, jest-expo, React Native Testing Library                          | Unit and screen tests                                                      |
+| Code quality        | ESLint, Prettier, Husky, commitlint                                       | Linting, formatting and commit message checks                              |
 
 ## Getting started
 
@@ -150,13 +168,14 @@ npm run test:rules    # security rules against the Firestore emulator (needs Jav
 
 ## Features
 
+<img src="docs/media/trail-party.png" alt="The live party map with everyone's position and status" width="49%" /> <img src="docs/media/trail-today.png" alt="Today, showing party alerts only when something is wrong" width="49%" />
+<img src="docs/media/trail-discover.png" alt="Discover: swipe up to save a trail" width="49%" /> <img src="docs/media/trail-summary.png" alt="The hike summary" width="49%" />
+
 ### Live party map
 
 Start a hike and share a six character code. Everyone who joins appears on one map, and each person
 leaves a fading breadcrumb trail. If someone stops checking in, their avatar dims and their row
 reads "last seen 4m ago" instead of pretending the pin is current.
-
-![Party screen with four hikers on a live map and their status list](trail_mockups/trail-02-party.jpg)
 
 ### Today
 
@@ -164,22 +183,16 @@ Today shows your party, your water and an alerts strip. The strip stays empty wh
 wrong. When something is, it says so plainly: someone has not checked in for two minutes, or their
 battery is low. Tap the bottle to log water. Calm reminders run during a hike, on your own schedule.
 
-![Today screen with a hike in progress, party alerts and the water bottle](trail_mockups/trail-03-today.jpg)
-
 ### Discover and save
 
 Swipe up to save a trail, swipe down to skip it, or tap to read the route, distance and climb. Save
 and skip buttons sit under the deck for anyone who prefers to tap. Saved trails keep your own notes.
 Removing one gives you four seconds to undo.
 
-![Discover screen with a swipeable trail card and arrows for save and skip](trail_mockups/trail-04-discover.jpg)
-
 ### Hike summary
 
 Ending a hike opens a summary. The route draws itself in, then the time out, trail length, party
 size and water for the day count up.
-
-![Trail detail screen beside the hike summary screen](trail_mockups/trail-05-summary.jpg)
 
 ### The rest of the app
 
@@ -187,7 +200,13 @@ Trail also has email sign up with password reset, a three slide onboarding that 
 account, a profile photo, a safety screen, and an admin screen for the trail catalogue. Starting a
 hike away from the trailhead shows a warning first.
 
-![A collage of Trail's main screens on tilted phones](trail_mockups/trail-06-all-screens.jpg)
+<details>
+<summary><b>More screenshots</b></summary>
+
+<img src="trail_mockups/trail-02-party.jpg" alt="Party screen with four hikers on a live map and their status list" width="49%" /> <img src="trail_mockups/trail-04-discover.jpg" alt="Discover screen with a swipeable trail card and arrows for save and skip" width="49%" />
+<img src="trail_mockups/trail-05-summary.jpg" alt="Trail detail screen beside the hike summary screen" width="49%" /> <img src="trail_mockups/trail-06-all-screens.jpg" alt="A collage of Trail's main screens on tilted phones" width="49%" />
+
+</details>
 
 ## Development process
 
@@ -339,18 +358,18 @@ Database channel from the pitch.
 
 ### Security rules
 
-Location data needs rules that are tested and not assumed. `backend/rules.test.ts` runs 18 cases
+Location data needs rules that are tested and not assumed. `backend/rules.test.ts` runs 19 cases
 against the Firestore emulator in CI. For example, a non-member cannot read a group, a member cannot
 write another member's position, and only a hike's owner can retire its invite code.
 
-| Path                               | Read               | Write                                                        |
-| :--------------------------------- | :----------------- | :----------------------------------------------------------- |
-| `users/{uid}` and `savedTrails`    | That user          | That user                                                    |
-| `trails/{trailId}`                 | Any signed-in user | Admin only                                                   |
-| `groups/{groupId}`                 | Group members      | Owner, or a user adding only their own id to `memberIds`     |
-| `groups/{groupId}/positions/{uid}` | Group members      | That member only                                             |
-| `inviteCodes/{CODE}`               | Any signed-in user | Any signed-in user can create. Only the owner can deactivate |
-| Storage `avatars/{uid}`            | Any signed-in user | That user. Images only, up to 5 MB                           |
+| Path                               | Read                                                        | Write                                                        |
+| :--------------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------- |
+| `users/{uid}` and `savedTrails`    | That user                                                   | That user                                                    |
+| `trails/{trailId}`                 | Any signed-in user                                          | Admin only                                                   |
+| `groups/{groupId}`                 | Group members                                               | Owner, or a user adding only their own id to `memberIds`     |
+| `groups/{groupId}/positions/{uid}` | Group members                                               | That member only                                             |
+| `inviteCodes/{CODE}`               | Any signed-in user, one code at a time (listing is blocked) | Any signed-in user can create. Only the owner can deactivate |
+| Storage `avatars/{uid}`            | Any signed-in user                                          | That user. Images only, up to 5 MB                           |
 
 The admin check compares one demo email address. A production app would use custom claims. Only a
 hike's owner can end it, and members cannot leave a group, because the rules let a person add their
@@ -361,11 +380,11 @@ own id but never remove it.
 | Test suite      | Command                  | Result                    |
 | :-------------- | :----------------------- | :------------------------ |
 | Unit and screen | `npm test -- --coverage` | **135 passed**, 16 suites |
-| Security rules  | `npm run test:rules`     | **18 passed**, 1 suite    |
+| Security rules  | `npm run test:rules`     | **19 passed**, 1 suite    |
 
 The security rules result comes from
-[GitHub Actions](https://github.com/victordupreez0/Trail/actions/runs/42486165003), on commit
-`805ebbc`.
+[GitHub Actions](https://github.com/victordupreez0/Trail/actions/runs/42851700209), on commit
+`66059d4`.
 
 | Coverage             | Statements | Branches | Functions | Lines  |
 | :------------------- | :--------- | :------- | :-------- | :----- |
@@ -404,21 +423,21 @@ in these numbers. Native maps, gestures and animation are checked by hand on a p
 
 ## Conclusion
 
-**Highlights**
+### Highlights
 
 - Three random cards became one clear idea: a safety app reframed as a calm one.
 - A shared live map keeps a whole party in view, and shows plainly when someone goes quiet.
 - The location rules are tested against the emulator, not just written.
 - Anyone can run the app from a QR code, with no native build and no Firebase setup.
 
-**Challenges**
+### Challenges
 
 - Location sharing had to be private by default and still let a new person join by code.
 - Maps, gestures and notifications cannot be proven by unit tests, so they need testing on a phone.
 - Tracking only runs in the foreground, and trail routes are simplified lines and not recorded GPX
   tracks.
 
-**Future improvements**
+### Future improvements
 
 - Plant and bird identification from a photo.
 - Offline trail maps.
@@ -426,9 +445,9 @@ in these numbers. Native maps, gestures and animation are checked by hand on a p
 
 ---
 
-**License.** MIT License. Copyright (c) 2026 Victor du Preez. See [LICENSE](LICENSE).
+**Licence:** MIT License. Copyright (c) 2026 Victor du Preez. See [LICENSE](LICENSE).
 
-**Author.** Victor du Preez · 241250 · Interactive Development 300 · Open Window · 2026 ·
+**Author:** Victor du Preez · 241250 · Interactive Development 300 · Open Window · 2026 ·
 [victor.dupreez0@gmail.com](mailto:victor.dupreez0@gmail.com)
 
 **Acknowledgements**
